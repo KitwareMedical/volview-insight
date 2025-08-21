@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+  <body>
+    <script src="./lib/fhir-client.js"></script>
+    <script>
+      const redirectUri = `${window.location.origin}/volview-insight/fhir-login/`;
+      FHIR.oauth2.settings.fullSessionStorageSupport = false;
+      FHIR.oauth2.authorize({
+        'client_id': '846a5a79-e6c0-4d55-973b-20a78694c71d',
+        'scope':  'patient/Patient.read patient/Observation.read launch/patient online_access openid profile',
+        'redirect_uri': redirectUri,
+      });
+    </script>
+  </body>
+</html>

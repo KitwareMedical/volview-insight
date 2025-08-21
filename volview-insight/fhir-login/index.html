@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+  <body>
+    <script>
+      const url = new URL(window.location.href);
+      const codeValue = url.searchParams.get('code');
+      const stateValue = url.searchParams.get('state');
+      const oauthMessage = {
+        url: window.location.href,
+        storage: {key: stateValue, value: sessionStorage[stateValue]},
+        code: codeValue,
+        state: stateValue
+      };
+      // window.location.origin is the host:port (e.g. localhost:4173)
+      window.opener.postMessage(oauthMessage, window.location.origin);
+    </script>
+  </body>
+</html>

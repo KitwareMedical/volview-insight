@@ -1,0 +1,38 @@
+[tool.poetry]
+# To be enabled after poetry >= 1.8.0 becomes available
+# package-mode = false
+name = "volview_server"
+version = "0.1.0"
+description = "Methods for VolView Insight Python Server"
+authors = ["Kitware Inc"]
+license = "Apache 2.0"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0.0"
+itk = "^5.3.0"
+black = "^23.1.0"
+flake8 = "^6.0.0"
+pytest = "^7.2.1"
+numpy = "^1.24.1"
+aiohttp = "3.9.2"
+python-socketio = "^5.8.0"
+charset-normalizer = "^3.1.0"
+torch = "2.7.1"
+lightning = "2.1.3"
+monai = "1.3.0"
+SimpleITK = "2.3.1"
+pydicom = "2.4.4"
+einops = "0.7.0"
+scikit-learn = "^1.7.0"
+transformers = ">=4.50.0"
+accelerate = "1.9.0"
+Pillow = "^10.0.0"
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.group.dev.dependencies]
+uvicorn = {extras = ["standard"], version = "^0.22.0"}
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
