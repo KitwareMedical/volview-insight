@@ -8,8 +8,7 @@
 
 ## 📖 About
 
-**VolView Insight** is an open-source platform that unifies **medical imaging** and **clinical data** into one extensible interface.  
-It provides researchers with a realistic testbed for **developing, testing, and extending multimodal models** in settings that mirror clinical reality.  
+**VolView Insight** is an open-source platform that unifies **medical imaging** and **clinical data** into one extensible interface. It provides researchers with a realistic testbed for **developing, testing, and extending multimodal models** in settings that mirror clinical reality.  
 
 **Highlights**
 - 🔬 Unified access to imaging data (DICOM/DICOMWeb) and clinical records (FHIR/EHR).  
