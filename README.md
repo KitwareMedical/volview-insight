@@ -142,12 +142,6 @@ npm run dev
 
 ---
 
-## 📊 Example data
-
-VolView Insight requires images **with patient records**. IDs in DICOM must match those in FHIR.
-
-Example: [`notebooks/02-load-pt-matched-data-into-volview-insight.ipynb`](./notebooks/02-load-pt-matched-data-into-volview-insight.ipynb)
-
 ---
 
 ## 🧩 Extending VolView Insight
@@ -167,7 +161,6 @@ We welcome contributions!
 - Add integrations with other EHR/DICOM backends  
 - Report bugs and propose features
 
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ---
 
