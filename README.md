@@ -1,8 +1,5 @@
 # VolView Insight
 
-A customized version of VolView. Created by forking from the [LungAIR Web
-App](https://github.com/KitwareMedical/lungair-web-application).
-
 ![A screenshot of a sample VolView Insight
 session](./volview-insight/resources/example_screenshot.jpg)
 
