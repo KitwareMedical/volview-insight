@@ -155,7 +155,6 @@ npm run dev
 
 We welcome contributions!
 
-- Improve docs & tutorials  
 - Add new pipelines or models  
 - Add integrations with other EHR/DICOM backends  
 - Report bugs and propose features
