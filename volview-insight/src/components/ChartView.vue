@@ -203,7 +203,7 @@ function computeVitalStats(
 
 /**
  * Extracts and groups FHIR Observation resources representing common vital signs,
- * based on known MIMIC item codes, then sorts each group by the resource's 
+ * based on known vital sign codes, then sorts each group by the resource's 
  * last updated timestamp in descending order (most recent first).
  *
  * @param observations - An array of FHIR Observation resources.
