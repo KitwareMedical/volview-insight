@@ -10,6 +10,7 @@ from sklearn.linear_model import LinearRegression
 
 from volview_insight_seg_inference import run_volview_insight_seg_inference
 from volview_insight_medgemma_inference import run_volview_insight_medgemma_inference
+from volview_insight_monai_reasoning_inference import run_volview_insight_monai_reasoning_inference
 from volview_server import VolViewApi, get_current_client_store, get_current_session
 from volview_server.transformers import (
     convert_itk_to_vtkjs_image,
@@ -199,6 +200,62 @@ async def medgemma_analysis(patient_id: str, img_id: str | None = None, active_l
             f"Unexpected error during MedGemma inference: {e}"
         ) from e
 
+@volview.expose("monaiReasoningAnalysis")
+async def monai_reasoning_analysis(patient_id: str, img_id: str | None = None, active_layer: int | None = None) -> None:
+    """Runs text-based or multi-modal inference using MONAI reasoning model via Hugging Face API.
+    If an img_id is specified, then the corresponding image and patient's vital signs records
+    are used by MONAI reasoning to respond to the user's prompt.
+
+    Args:
+        patient_id: The ID of the patient.
+        img_id: The ID of the image to provide to MONAI reasoning
+        active_layer: The index of the 2D slice to process. If None, assumes 2D image.
+    """
+    print(f"Started MONAI reasoning analysis...")
+
+    # Get the user prompt and vital signs data 
+    medgemma_store = get_current_client_store("medgemma-store")
+    print("Got the medgemma store. Now I'm gonna fetch the vitals data from the client")
+    analysis_input = await medgemma_store.analysisInput[patient_id]
+    print("Got the vitals data from the client.")
+
+    # Get the image
+    if img_id is not None:
+        image_store = get_current_client_store("images")
+        print("Got the images store. Now I'm gonna fetch the image from the client.")
+        state = get_current_session(default_factory=ClientState)
+
+        base_image_id = get_base_image(state, img_id)
+        img = await image_store.dataIndex[base_image_id]
+
+        print("Got the image data from the client. Going to start image processing.")
+        img_slice = get_image_slice(img, active_layer)
+
+    else:
+        img_slice = None
+        print("MONAI reasoning analysis did not get an image id. Will not use image...")
+    
+    print(f"Got {analysis_input} as the input. The type is {type(analysis_input)}.")
+
+    # ==== Processing logic ====
+    serialized_img_vtkjs = convert_itk_to_vtkjs_image(img_slice)
+    loop = asyncio.get_event_loop()
+
+    try:
+        # Does text need to be serialized?
+        monai_response = await loop.run_in_executor(
+            process_pool, do_monai_reasoning_inference, serialized_img_vtkjs, analysis_input
+        )
+
+        await medgemma_store.setAnalysisResult(patient_id, monai_response)
+
+        print(f"MONAI reasoning analysis finished. Response:\n{monai_response}")
+
+    except Exception as e:
+        raise RuntimeError(
+            f"Unexpected error during MONAI reasoning inference: {e}"
+        ) from e
+
 def do_medgemma_inference(serialized_img: Dict[str, Any], analysis_input: Dict ) -> Dict[str, Any]:
     """Runs medGemma inference
 
@@ -214,6 +271,22 @@ def do_medgemma_inference(serialized_img: Dict[str, Any], analysis_input: Dict )
     medgemma_response = run_volview_insight_medgemma_inference(input_data = analysis_input, itk_img = itk_img)
 
     return medgemma_response
+
+def do_monai_reasoning_inference(serialized_img: Dict[str, Any], analysis_input: Dict) -> Dict[str, Any]:
+    """Runs MONAI reasoning inference
+
+    Args:
+        serialized_img: The serialized ITK image (vtkjs format).
+        analysis_input: Dictionary containing the user query and parsed FHIR resource data
+
+    Returns:
+        The serialized text
+
+    """
+    itk_img = convert_vtkjs_to_itk_image(serialized_img)
+    monai_response = run_volview_insight_monai_reasoning_inference(input_data=analysis_input, itk_img=itk_img)
+
+    return monai_response
 
 def do_lung_segmentation(serialized_img: Dict[str, Any]) -> Dict[str, Any]:
     """Performs lung segmentation on a serialized image using a pre-trained model.

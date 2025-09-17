@@ -17,6 +17,7 @@ const medgemmaStore = useMedgemmaStore();
 const serverStore = useServerStore();
 
 const { selectedPatient } = storeToRefs(localFHIRStore);
+const { selectedModel } = storeToRefs(medgemmaStore);
 const { client } = serverStore;
 const { currentImageID } = useCurrentImage();
 
@@ -82,8 +83,9 @@ const sendMessage = async () => {
 
     medgemmaStore.setAnalysisInput(selectedPatient.value.id, payload);
 
-    // Invoke the RPC call
-    await client.call('medgemmaAnalysis', [selectedPatient.value.id, image_id, currentSlice.value]);
+    // Invoke the appropriate RPC call based on selected model
+    const rpcMethod = selectedModel.value === 'medgemma' ? 'medgemmaAnalysis' : 'monaiReasoningAnalysis';
+    await client.call(rpcMethod, [selectedPatient.value.id, image_id, currentSlice.value]);
 
     // Get the data outputs from the store
     const botResponse = medgemmaStore.analysisOutput[selectedPatient.value.id];
@@ -93,7 +95,7 @@ const sendMessage = async () => {
 
     appendMessage(botResponse, 'bot');
   } catch (error) {
-    console.error("Error calling medgemmaAnalysis:", error);
+    console.error(`Error calling ${selectedModel.value} analysis:`, error);
     appendMessage("Sorry, an error occurred while processing your request. Please try again.", 'bot');
   } finally {
     isTyping.value = false;
@@ -104,6 +106,20 @@ const sendMessage = async () => {
 <template>
   <v-container fluid class="fill-height pa-0">
     <v-card v-if="selectedPatient" class="chat-card">
+      <v-card-title class="d-flex align-center justify-space-between">
+        <span>AI Chat</span>
+        <v-select
+          v-model="selectedModel"
+          :items="[
+            { title: 'MedGemma', value: 'medgemma' },
+            { title: 'MONAI Reasoning', value: 'monai-reasoning' }
+          ]"
+          variant="outlined"
+          density="compact"
+          hide-details
+          style="max-width: 200px;"
+        ></v-select>
+      </v-card-title>
       <v-card-text class="chat-log">
         <div
           v-for="message in messages"
