@@ -118,10 +118,11 @@ poetry run python -m volview_server -P 4014 -H 0.0.0.0 volview_insight_methods.p
 > If you encounter issues, remove `-P 4014`.
 
 #### Example integrations
-- **MedGemma**: Hugging Face gated models (requires account + access token).  
-- **Segmentation**: Example lung segmentation model:
+- **MedGemma**: This is a gated public model from Hugging Face (requires account + access token and authentication via huggingface-cli login or environment variable HUGGINGFACE_HUB_TOKEN) 
+- **A Lung Segmentation MONAI model**: To use the lung segmentation model, the following checkpoint file needs to be installed in the volview-insight/server subfolder
 
 ```bash
+cd volview-insight/volview-insight/server
 curl https://data.kitware.com/api/v1/file/65bd8c2f03c3115909f73dd7/download --output segmentLungsModel-v1.0.ckpt
 ```
 
