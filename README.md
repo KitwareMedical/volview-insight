@@ -122,7 +122,7 @@ poetry run python -m volview_server -P 4014 -H 0.0.0.0 volview_insight_methods.p
 - **A Lung Segmentation MONAI model**: To use the lung segmentation model, the following checkpoint file needs to be installed in the volview-insight/server subfolder
 
 ```bash
-cd volview-insight/volview-insight/server
+cd volview-insight/server
 curl https://data.kitware.com/api/v1/file/65bd8c2f03c3115909f73dd7/download --output segmentLungsModel-v1.0.ckpt
 ```
 
