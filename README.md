@@ -8,25 +8,34 @@
 
 ## 📖 About
 
-**VolView Insight** is an open-source platform that unifies **medical imaging** and **clinical data** into one extensible interface. It provides researchers with a realistic testbed for **developing, testing, and extending multimodal models** in settings that mirror clinical reality.  
+**VolView Insight** is an open-source platform that unifies **medical imaging**
+and **clinical data** into one extensible interface. It provides researchers
+with a realistic testbed for **developing, testing, and extending multimodal
+models** in settings that mirror clinical reality.  
 
-**Highlights**
-- 🔬 Unified access to imaging data (DICOM/DICOMWeb) and clinical records (FHIR/EHR).  
-- 🧠 Extensible backend for AI/ML pipelines, including deep learning inference.  
-- ⚡ Web-based UI built on [VolView](https://github.com/KitwareMedical/VolView).  
-- 🔌 Pluggable integrations — Orthanc, HAPI on FHIR, and MedGemma are examples. Users can bring their **own DICOM/FHIR servers or multimodal pipelines**.
+### Highlights
+
+- 🔬 Unified access to imaging data (DICOM/DICOMWeb) and clinical records
+  (FHIR/EHR).  
+- 🧠 Extensible backend for AI/ML pipelines, including deep learning inference.
+- ⚡ Web-based UI built on [VolView](https://github.com/KitwareMedical/VolView).
+- 🔌 Pluggable integrations — Orthanc, HAPI on FHIR, and MedGemma are examples.
+  Users can bring their **own DICOM/FHIR servers or multimodal pipelines**.
 
 ---
 
 ## 🎥 Video Demonstrations
 
 ### Quick Overview
+
 [![VolView Insight Overview](https://img.youtube.com/vi/cfdlmkHQcCI/0.jpg)](https://www.youtube.com/watch?v=cfdlmkHQcCI)
 
 ### MedGemma Integration
+
 [![VolView Insight MedGemma Integration](https://img.youtube.com/vi/RZ3OovuXEnk/0.jpg)](https://www.youtube.com/watch?v=RZ3OovuXEnk)
 
 ### Comprehensive Webinar
+
 [![VolView Insight Webinar](https://img.youtube.com/vi/wItblBkxJw0/0.jpg)](https://www.youtube.com/watch?v=wItblBkxJw0)
 
 ---
@@ -40,8 +49,11 @@
 - **Docker Compose** v2.0 or later (included with Docker Desktop)
 
 **For Manual Setup:**
+=======
+Install the following:
+
 - **Node.js** (use `nvm` to manage versions)
-- **Python** ≥ `3.10` (tested with 3.10)
+- **Python** == `3.10.11`
 - **Poetry** `2.1.2`
 - **Docker** `20.10.0` or later
 - A **DICOMWeb** server (e.g., Orthanc)
@@ -308,7 +320,7 @@ Verify at: [http://localhost:8042/](http://localhost:8042/)
 
 #### Option B — macOS (native binary)
 
-1. Download Orthanc: <https://www.orthanc-server.com/static.php?page=download-mac>  
+1. Download Orthanc: <https://www.orthanc-server.com/static.php?page=download-mac>
 2. Run `startOrthanc.command`  
 3. Verify at: `http://localhost:8042/`
 
@@ -353,6 +365,10 @@ curl https://data.kitware.com/api/v1/file/65bd8c2f03c3115909f73dd7/download --ou
 
 ### 6) Start the VolView Insight web app
 
+> Make sure you have access to a global python environment running Python
+> 3.10.11. You will have problems with `npm install --force` using some later
+> versions.
+
 ```bash
 nvm use 18.17.1
 npm install --force
@@ -396,19 +412,23 @@ We welcome contributions!
 - Add integrations with other EHR/DICOM backends  
 - Report bugs and propose features
 
-
 ---
 
 ## Disclaimer
 
-This software is provided **solely for research and educational purposes**.  
-It is a proof-of-concept research platform and **is not intended for clinical use**.  
+This software is provided **solely for research and educational purposes**.  It
+is a proof-of-concept research platform and **is not intended for clinical
+use**.  
 
-- This software has **not been reviewed or approved by the U.S. Food and Drug Administration (FDA)** or any other regulatory authority.  
-- It must **not be used for diagnosis, treatment, or any clinical decision-making**.  
-- No warranties or guarantees of performance, safety, or fitness for medical purposes are provided.  
+- This software has **not been reviewed or approved by the U.S. Food and Drug
+  Administration (FDA)** or any other regulatory authority.  
+- It must **not be used for diagnosis, treatment, or any clinical
+  decision-making**.  
+- No warranties or guarantees of performance, safety, or fitness for medical
+  purposes are provided.  
 
-By using this software, you acknowledge that it is for **non-clinical, investigational research only**.
+By using this software, you acknowledge that it is for **non-clinical,
+investigational research only**.
 
 ---
 
