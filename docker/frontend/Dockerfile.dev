@@ -1,0 +1,31 @@
+FROM node:18.17.1-alpine
+WORKDIR /app
+
+# Install build dependencies for native modules
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    musl-dev \
+    giflib-dev \
+    pixman-dev \
+    pangomm-dev \
+    libjpeg-turbo-dev \
+    freetype-dev
+
+# Copy everything first
+COPY . .
+
+# Install dependencies
+RUN npm install --force
+RUN cd volview-insight && npm install
+RUN cd core/VolView && npm install
+
+# Expose port
+EXPOSE 8080
+
+# Start development server
+CMD ["npm", "run", "dev"]

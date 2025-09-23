@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # Development frontend with hot reloading
+  volview-insight-web:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile.dev
+    environment:
+      - NODE_ENV=development
+      - VITE_REMOTE_SERVER_URL=http://localhost:4014/
+      - VITE_DICOM_WEB_URL=http://localhost:5173/dicom-web/
+      - VITE_FHIR_SERVER_URL=http://localhost:3000/hapi-fhir-jpaserver/fhir/
+    volumes:
+      - ./volview-insight/src:/app/volview-insight/src
+      - ./core:/app/core
+      - /app/node_modules
+    command: ["npm", "run", "dev"]
+
+  # Development backend with debug logging
+  backend:
+    environment:
+      - PYTHON_ENV=development
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./volview-insight/server:/app
+      - model-cache:/app/models
+    command: ["python", "-m", "volview_server", "-P", "4014", "-H", "0.0.0.0", "--verbose", "volview_insight_methods.py"]
+
+  # Development orthanc proxy
+  orthanc-proxy:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./volview-insight/orthanc-proxy:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev"]
