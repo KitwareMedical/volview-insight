@@ -2,9 +2,11 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   server: {
+    host: '0.0.0.0',
+    port: 5173,
     proxy: {
       "/dicom-web": {
-        target: "http://localhost:8042",
+        target: process.env.ORTHANC_URL || "http://localhost:8042",
         changeOrigin: true,
         // auth: "orthanc:orthanc",
         configure: (proxy) => {
