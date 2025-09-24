@@ -52,8 +52,7 @@ services:
     environment:
       - ORTHANC__AUTHENTICATION_ENABLED=false
       - ORTHANC__REMOTE_ACCESS_ALLOWED=true
-      - ORTHANC__DICOM_WEB_ENABLED=true
-      - ORTHANC__DICOM_WEB_ROOT=/dicom-web/
+      - DICOM_WEB_PLUGIN_ENABLED=true
       - ORTHANC__STORAGE_DIRECTORY=/var/lib/orthanc/db
       - ORTHANC__DATABASE_DIRECTORY=/var/lib/orthanc/db
       - ORTHANC__INDEX_DIRECTORY=/var/lib/orthanc/db
