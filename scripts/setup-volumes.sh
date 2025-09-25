@@ -15,6 +15,17 @@ chmod 755 volumes/orthanc-data
 chmod 755 volumes/hapi-fhir-data
 chmod 755 volumes/model-cache
 
+# Download MONAI lung segmentation model
+echo "🤖 Downloading MONAI lung segmentation model..."
+MODEL_PATH="volumes/model-cache/segmentLungsModel-v1.0.ckpt"
+if [ ! -f "$MODEL_PATH" ]; then
+    echo "   Downloading segmentLungsModel-v1.0.ckpt (336MB)..."
+    curl -L https://data.kitware.com/api/v1/file/65bd8c2f03c3115909f73dd7/download --output "$MODEL_PATH"
+    echo "✅ MONAI model downloaded successfully!"
+else
+    echo "✅ MONAI model already exists, skipping download."
+fi
+
 # Check if .env exists
 if [ ! -f ".env" ]; then
     echo "⚠️  .env file not found!"
@@ -38,3 +49,4 @@ echo "📊 Volume structure created:"
 echo "   📁 volumes/orthanc-data/     - DICOM files and Orthanc database"
 echo "   📁 volumes/hapi-fhir-data/  - FHIR resources and HAPI database"
 echo "   📁 volumes/model-cache/     - AI model cache (medGemma, MONAI, etc.)"
+echo "      └── segmentLungsModel-v1.0.ckpt - MONAI lung segmentation model"

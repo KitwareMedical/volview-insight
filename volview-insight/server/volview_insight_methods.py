@@ -227,7 +227,10 @@ def do_lung_segmentation(serialized_img: Dict[str, Any]) -> Dict[str, Any]:
     Raises:
         FileNotFoundError: If the segmentation model file is not found.
     """
-    model_path = './segmentLungsModel-v1.0.ckpt'
+    # Try volume-mounted path first, then fallback to local path
+    model_path = '/app/models/segmentLungsModel-v1.0.ckpt'
+    if not os.path.exists(model_path):
+        model_path = './segmentLungsModel-v1.0.ckpt'
 
     if not os.path.exists(model_path):
         raise FileNotFoundError(
