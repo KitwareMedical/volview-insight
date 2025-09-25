@@ -26,6 +26,17 @@ else
     echo "✅ MONAI model already exists, skipping download."
 fi
 
+# Download MedGemma model (requires HF_TOKEN)
+echo "🧠 Setting up MedGemma model..."
+MEDGEMMA_DIR="volumes/model-cache/medgemma"
+if [ ! -d "$MEDGEMMA_DIR/google--medgemma-4b-it" ]; then
+    echo "   MedGemma model will be downloaded on first use with HF_TOKEN"
+    echo "   Make sure to set HF_TOKEN in your .env file"
+    echo "   Model: google/medgemma-4b-it (~8GB)"
+else
+    echo "✅ MedGemma model already exists, skipping download."
+fi
+
 # Check if .env exists
 if [ ! -f ".env" ]; then
     echo "⚠️  .env file not found!"
@@ -49,4 +60,5 @@ echo "📊 Volume structure created:"
 echo "   📁 volumes/orthanc-data/     - DICOM files and Orthanc database"
 echo "   📁 volumes/hapi-fhir-data/  - FHIR resources and HAPI database"
 echo "   📁 volumes/model-cache/     - AI model cache (medGemma, MONAI, etc.)"
-echo "      └── segmentLungsModel-v1.0.ckpt - MONAI lung segmentation model"
+echo "      ├── segmentLungsModel-v1.0.ckpt - MONAI lung segmentation model"
+echo "      └── medgemma/ - MedGemma multimodal model (downloaded on first use)"

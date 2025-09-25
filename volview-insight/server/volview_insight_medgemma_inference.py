@@ -3,6 +3,33 @@ from transformers import AutoModelForImageTextToText, AutoProcessor
 from PIL import Image
 import itk
 import numpy as np
+import os
+from huggingface_hub import login
+
+def setup_huggingface_auth():
+    """Setup Hugging Face authentication using HF_TOKEN environment variable."""
+    hf_token = os.getenv('HF_TOKEN')
+    if not hf_token:
+        raise ValueError(
+            "HF_TOKEN environment variable is required for MedGemma. "
+            "Please set it in your .env file with your Hugging Face API token."
+        )
+    
+    try:
+        login(token=hf_token)
+        print("✅ Successfully authenticated with Hugging Face")
+    except Exception as e:
+        raise RuntimeError(f"Failed to authenticate with Hugging Face: {e}")
+
+def get_model_cache_dir(model_id: str) -> str:
+    """Get the cache directory for the model, preferring volume-mounted path."""
+    # Try volume-mounted path first
+    volume_cache_dir = "/app/models/medgemma"
+    if os.path.exists(volume_cache_dir):
+        return volume_cache_dir
+    
+    # Fallback to default cache directory
+    return None
 
 def generate_vital_sign_summary_prompt(vital_signs_data: dict) -> str:
     """
@@ -65,6 +92,9 @@ def run_volview_insight_medgemma_inference(input_data: dict, itk_img: itk.image 
         str: The generated text response from the MedGemma model.
     """
 
+    # Setup Hugging Face authentication
+    setup_huggingface_auth()
+
     model_variant = "4b-it"  # @param ["4b-it", "27b-it", "27b-text-it"]
     model_id = f"google/medgemma-{model_variant}"
     is_thinking = False
@@ -115,12 +145,27 @@ def run_volview_insight_medgemma_inference(input_data: dict, itk_img: itk.image 
     ]
 
     model_id = f"google/medgemma-{model_variant}"
-    model = AutoModelForImageTextToText.from_pretrained(
-        model_id,
-        device_map="auto",
-        torch_dtype=torch.bfloat16,
-    )
-    processor = AutoProcessor.from_pretrained(model_id)
+    
+    # Get cache directory for model storage
+    cache_dir = get_model_cache_dir(model_id)
+    
+    print(f"Loading MedGemma model: {model_id}")
+    if cache_dir:
+        print(f"Using cache directory: {cache_dir}")
+    
+    # Load model and processor with caching
+    model_kwargs = {
+        "device_map": "auto",
+        "torch_dtype": torch.bfloat16,
+    }
+    processor_kwargs = {}
+    
+    if cache_dir:
+        model_kwargs["cache_dir"] = cache_dir
+        processor_kwargs["cache_dir"] = cache_dir
+    
+    model = AutoModelForImageTextToText.from_pretrained(model_id, **model_kwargs)
+    processor = AutoProcessor.from_pretrained(model_id, **processor_kwargs)
 
     # --- Start of per-request logic ---
     
