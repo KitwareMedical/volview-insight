@@ -80,6 +80,22 @@ echo "📊 Useful commands:"
 echo "   - View logs: docker-compose logs -f"
 echo "   - Stop services: docker-compose down"
 echo "   - Restart services: docker-compose restart"
+echo "   - Import data manually: ./scripts/auto-import-data.sh"
 echo ""
 echo "⏳ Services may take a few minutes to fully initialize..."
 echo "   Check the logs if any service doesn't respond: docker-compose logs [service-name]"
+echo ""
+echo "📥 Auto-import: Checking for data to import..."
+
+# Check if data exists and run auto-import
+if [ -d "./volumes/orthanc-data" ] && [ -d "./volumes/hapi-fhir-data" ]; then
+    echo "   Found data in volumes, running auto-import..."
+    echo "   This may take a few minutes..."
+    ./scripts/auto-import-data.sh
+    echo ""
+    echo "✅ Auto-import completed!"
+else
+    echo "   No data found in volumes directory"
+    echo "   To import data later, run: ./scripts/auto-import-data.sh"
+fi
+echo ""
