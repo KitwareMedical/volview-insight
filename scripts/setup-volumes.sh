@@ -5,9 +5,9 @@ echo "🚀 Setting up VolView Insight volumes..."
 
 # Create volume directories
 echo "📁 Creating volume directories..."
-mkdir -p volumes/orthanc-data/{db,index,storage}
-mkdir -p volumes/hapi-fhir-data/{fhir,database}
-mkdir -p volumes/model-cache/{huggingface,monai,medgemma}
+mkdir -p volumes/orthanc-data/{db,index,storage} 2>/dev/null || true
+mkdir -p volumes/hapi-fhir-data/{fhir,database} 2>/dev/null || true
+mkdir -p volumes/model-cache/{huggingface,monai,medgemma} 2>/dev/null || true
 
 # Set permissions
 echo "🔐 Setting permissions..."
@@ -26,15 +26,18 @@ else
     echo "✅ MONAI model already exists, skipping download."
 fi
 
-# Download MedGemma model (requires HF_TOKEN)
+# Setup MedGemma model (gated repository - downloads on first use)
 echo "🧠 Setting up MedGemma model..."
 MEDGEMMA_DIR="volumes/model-cache/medgemma"
 if [ ! -d "$MEDGEMMA_DIR/google--medgemma-4b-it" ]; then
-    echo "   MedGemma model will be downloaded on first use with HF_TOKEN"
-    echo "   Make sure to set HF_TOKEN in your .env file"
-    echo "   Model: google/medgemma-4b-it (~8GB)"
+    echo "   MedGemma model will be downloaded on first use"
+    echo "   Model: google/medgemma-4b-it (~8GB, gated repository)"
+    echo "   Make sure to:"
+    echo "   1. Set HF_TOKEN in your .env file"
+    echo "   2. Request access at: https://huggingface.co/google/medgemma-4b-it"
+    echo "   3. Ensure your token has gated repository permissions"
 else
-    echo "✅ MedGemma model already exists, skipping download."
+    echo "✅ MedGemma model already exists, skipping setup."
 fi
 
 # Check if .env exists
