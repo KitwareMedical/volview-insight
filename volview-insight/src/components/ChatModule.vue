@@ -2,19 +2,26 @@
 import { ref, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import MarkdownIt from 'markdown-it';
+
 import { useCurrentImage } from '@/src/composables/useCurrentImage';
 import { useLocalFHIRStore } from '../store/local-fhir-store';
 import { useBackendModelStore } from '../store/backend-model-store';
 import { useServerStore, ConnectionState } from '@/src/store/server';
+import useViewSliceStore from '@/src/store/view-configs/slicing';
 
-// --- Markdown Renderer Setup ---
-// Initialize markdown-it. The `breaks: true` option converts '\n' in paragraphs into <br> tags.
-const md = new MarkdownIt({ breaks: true });
+// --- Configuration ---
+/** Identifier for the view whose slice we are interested in. */
+const TARGET_VIEW_ID = 'Axial';
+
+/** List of vital sign fields to extract from the backend model store. */
+const VITAL_FIELDS = ['heart_rate', 'respiratory_rate', 'spo2'] as const;
 
 // --- Store and Composables Setup ---
 const localFHIRStore = useLocalFHIRStore();
 const backendModelStore = useBackendModelStore();
 const serverStore = useServerStore();
+const viewSliceStore = useViewSliceStore();
+const md = new MarkdownIt({ breaks: true });
 
 const { selectedPatient } = storeToRefs(localFHIRStore);
 const { client } = serverStore;
@@ -32,69 +39,88 @@ const newMessage = ref('');
 const isTyping = ref(false);
 
 // --- Computed Properties ---
-const ready = computed(() => serverStore.connState === ConnectionState.Connected);
+const isConnected = computed(() => serverStore.connState === ConnectionState.Connected);
 
-// --- current slice being viewed in the Axial view, as it's a 2D view that slices a 3D image --- //
-import useViewSliceStore from '@/src/store/view-configs/slicing';
-const viewSliceStore = useViewSliceStore();
-const viewIDToWatch = 'Axial'; // <-- We are targeting the Axial view which is set as the image viewer in ../../config.ts
+/** The current slice being viewed in the target 2D view. */
 const currentSlice = computed(() => {
-  if (!currentImageID.value) return null; // Default value if no image
-  
-  const config = viewSliceStore.getConfig(viewIDToWatch, currentImageID.value);
-  return config?.slice ?? null; // Return the slice or a default value
+  if (!currentImageID.value) return null;
+  const config = viewSliceStore.getConfig(TARGET_VIEW_ID, currentImageID.value);
+  return config?.slice ?? null;
 });
 
-// --- Methods ---
+// --- Utility Functions ---
+
+/**
+ * Extracts the numerical value from a list of FHIR Observation resources for a given vital field.
+ * @param field The vital field name (e.g., 'heart_rate').
+ * @returns An array of numerical vital sign values.
+ */
+function extractVitals(field: typeof VITAL_FIELDS[number]): (number | undefined)[] {
+  const observations = backendModelStore.vitals[field];
+  return observations
+    ?.map(obs => obs?.valueQuantity?.value)
+    .filter((v): v is number | undefined => v != null) ?? [];
+}
+
+/**
+ * Appends a new message to the chat log.
+ */
 const appendMessage = (text: string, sender: 'user' | 'bot') => {
   messages.value.push({ id: Date.now(), text, sender });
 };
 
+// --- Main Method ---
 const sendMessage = async () => {
   const text = newMessage.value.trim();
   if (!text || isTyping.value) return;
+
+  // Initial setup and validation
+  const patientID = selectedPatient.value?.id;
+  if (!patientID) {
+    console.error("No patient is selected.");
+    return;
+  }
 
   appendMessage(text, 'user');
   newMessage.value = '';
   isTyping.value = true;
 
   try {
-    // Set up data inputs from the store
-    if (!selectedPatient.value?.id) {
-      throw new Error("No patient is selected.");
-    }
-    const image_id = currentImageID.value ?? null;
+    // Dynamically build the vital signs part of the payload
+    const vitalPayload = VITAL_FIELDS.reduce((acc, field) => {
+      acc[field] = extractVitals(field);
+      return acc;
+    }, {} as Record<typeof VITAL_FIELDS[number], (number | undefined)[]>);
 
-    // Define the payload. Note that the store contains vitals as FHIR Observation
-    // resources, so we must extract them.
+    // Define the complete payload
     const payload = {
-        prompt: text,
-        heart_rate: backendModelStore.vitals.heart_rate
-            ?.map(obs => obs?.valueQuantity?.value)
-            .filter(v => v != null) ?? [],
-        respiratory_rate: backendModelStore.vitals.respiratory_rate
-            ?.map(obs => obs?.valueQuantity?.value)
-            .filter(v => v != null) ?? [],
-        spo2: backendModelStore.vitals.spo2
-            ?.map(obs => obs?.valueQuantity?.value)
-            .filter(v => v != null) ?? [],
+      prompt: text,
+      ...vitalPayload,
     };
 
-    backendModelStore.setAnalysisInput(selectedPatient.value.id, payload);
+    backendModelStore.setAnalysisInput(patientID, payload);
 
     // Invoke the RPC call
-    await client.call('medgemmaAnalysis', [selectedPatient.value.id, image_id, currentSlice.value]);
+    await client.call('medgemmaAnalysis', [
+      patientID,
+      currentImageID.value ?? null,
+      currentSlice.value,
+    ]);
 
     // Get the data outputs from the store
-    const botResponse = backendModelStore.analysisOutput[selectedPatient.value.id];
+    const botResponse = backendModelStore.analysisOutput[patientID];
+
     if (!botResponse || typeof botResponse !== 'string') {
-        throw new Error("Received an invalid response from the server.");
+      throw new Error("Received an invalid or malformed response from the server.");
     }
 
     appendMessage(botResponse, 'bot');
   } catch (error) {
     console.error("Error calling medgemmaAnalysis:", error);
-    appendMessage("Sorry, an error occurred while processing your request. Please try again.", 'bot');
+    const errorMessage = (error as Error).message.includes("No patient")
+      ? "Please select a patient before chatting."
+      : "Sorry, an error occurred while processing your request. Please try again.";
+    appendMessage(errorMessage, 'bot');
   } finally {
     isTyping.value = false;
   }
@@ -200,8 +226,8 @@ const sendMessage = async () => {
 }
 
 /* Styles for rendered markdown content from the bot.
-  ':deep()' is used to apply styles to the v-html content,
-  which is not processed by Vue's scoped styles otherwise.
+   ':deep()' is used to apply styles to the v-html content,
+   which is not processed by Vue's scoped styles otherwise.
 */
 .message-bot :deep(p) {
   margin-bottom: 0.5em;
