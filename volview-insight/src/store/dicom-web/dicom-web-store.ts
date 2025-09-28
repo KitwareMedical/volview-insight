@@ -1,6 +1,6 @@
 import { computed, ref, watch } from 'vue';
 import { useLocalStorage, UrlParams } from '@vueuse/core';
-import { defineStore } from 'pinia';
+import { defineStore, storeToRefs } from 'pinia';
 import vtkURLExtract from '@kitware/vtk.js/Common/Core/URLExtract';
 
 import { omit, remapKeys } from '@/src/utils';
@@ -22,7 +22,7 @@ import {
   parseUrl,
   QueryParams,
 } from '../../core/dicom-web-api';
-import { useLocalFHIRStore } from '../local-fhir-store';
+import { usePatientStore } from '../patient-store';
 
 const DICOM_WEB_URL_PARAM = 'dicomweb';
 
@@ -85,8 +85,8 @@ export const useDicomWebStore = defineStore('dicom-web', () => {
 
   const host = ref<string | null>(hostConfig ?? savedHost.value);
 
-  const { getCurrentPatient } = useLocalFHIRStore();
-  const currentPatient = getCurrentPatient();
+  const patientStore = usePatientStore();
+  const { selectedPatient: currentPatient } = storeToRefs(patientStore);
 
   // Remove trailing slash and pull study/series IDs from URL
   const parsedURL = computed(() => parseUrl(host.value ?? ''));

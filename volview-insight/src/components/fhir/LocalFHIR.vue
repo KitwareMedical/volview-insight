@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import FHIR from 'fhirclient';
 import { useLocalFHIRStore } from '../../store/local-fhir-store';
+import { usePatientStore } from '../../store/patient-store';
 
 // Define a reusable type for the patient object.
 type Patient = {
@@ -15,10 +16,10 @@ type Patient = {
 
 // Pinia store setup
 const localFHIRStore = useLocalFHIRStore();
-const { hostURL: localServerUrl, identifierSystem } = storeToRefs(localFHIRStore);
+const patientStore = usePatientStore();
 
-// Get a direct reactive reference to the store's current patient by calling the getter.
-const activePatient = localFHIRStore.getCurrentPatient();
+const { hostURL: localServerUrl, identifierSystem } = storeToRefs(localFHIRStore);
+const { selectedPatient: activePatient } = storeToRefs(patientStore);
 
 // Component reactive state
 const patients = ref<Patient[]>([]);
@@ -69,7 +70,7 @@ async function login() {
         const resource_id = resource.id;
 
         if (!id || !resource_id) {
-          console.warn("Patient is missing a required identifier:", resource);
+          console.warn("Patient is a missing required identifier:", resource);
           return null;
         }
 
@@ -103,8 +104,8 @@ const doLogin = () => {
 const setPatient = (id: string) => {
   const patient = patients.value.find(p => p.id === id);
   if (patient) {
-    // Calling the store's action will update the ref that our local `activePatient` points to.
-    localFHIRStore.setCurrentPatient(patient);
+    // Calling the patient store's action to update the active patient
+    patientStore.setCurrentPatient(patient);
   } else {
     console.warn("Could not set active patient: ID not found:", id);
   }
