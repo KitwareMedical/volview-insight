@@ -157,11 +157,9 @@ const chartOptions = ref({
   },
 });
 
-// Watch the vitals ref for changes and update the backend model store
-import { useBackendModelStore } from '../store/backend-model-store';
-const backendModelStore = useBackendModelStore();
+// Watch the vitals ref for changes and update the local fhir store
 watch(vitals, (newVitals) => {
-  backendModelStore.setVitals(newVitals);
+  localFHIRStore.setVitals(newVitals);
 }, { deep: true }); // Use { deep: true } to watch for changes inside the object
 
 /**

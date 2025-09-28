@@ -20,6 +20,20 @@ export const useLocalFHIRStore = defineStore('local-fhir-store', () => {
 
   const selectedPatient = ref<{ id: string, name: string, resource_id: string } | null>(null);
 
+  const vitals = ref<Record<string, any[]>>({
+    heart_rate: [],
+    respiratory_rate: [],
+    temperature: [],
+    systolic_bp: [],
+    diastolic_bp: [],
+    mean_arterial_pressure: [],
+    spo2: [],
+  });
+
+  function setVitals(newVitals: Record<string, any[]>) {
+    vitals.value = newVitals;
+  }
+
   function setCurrentPatient(patient: { id: string, name: string, resource_id: string }) {
     let oldPatientId = selectedPatient.value?.id
 
@@ -42,6 +56,8 @@ export const useLocalFHIRStore = defineStore('local-fhir-store', () => {
     hostName,
     selectedPatient,
     identifierSystem,
+    vitals,
+    setVitals,
     setCurrentPatient,
     getCurrentPatient,
   };

@@ -97,7 +97,7 @@ const resetAllChats = () => {
  * @returns An array of numerical vital sign values.
  */
 function extractVitals(field: typeof VITAL_FIELDS[number]): (number | undefined)[] {
-  const observations = backendModelStore.vitals[field];
+  const observations = localFHIRStore.vitals[field];
   return (
     observations
       ?.map((obs) => obs?.valueQuantity?.value)
