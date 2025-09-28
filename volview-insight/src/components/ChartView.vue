@@ -157,11 +157,11 @@ const chartOptions = ref({
   },
 });
 
-// Watch the vitals ref for changes and update the medgemma store
-import { useMedgemmaStore } from '../store/medgemma-store';
-const medgemmaStore = useMedgemmaStore();
+// Watch the vitals ref for changes and update the backend model store
+import { useBackendModelStore } from '../store/backend-model-store';
+const backendModelStore = useBackendModelStore();
 watch(vitals, (newVitals) => {
-  medgemmaStore.setVitals(newVitals);
+  backendModelStore.setVitals(newVitals);
 }, { deep: true }); // Use { deep: true } to watch for changes inside the object
 
 /**

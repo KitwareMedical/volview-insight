@@ -12,7 +12,7 @@ interface State {
   vitals: Record<string, any[]>;
 }
 
-export const useMedgemmaStore = defineStore('medgemma-store', {
+export const useBackendModelStore = defineStore('backend-model-store', {
   /**
    * Defines the initial state of the store.
    */

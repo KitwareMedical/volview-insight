@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia';
 import MarkdownIt from 'markdown-it';
 import { useCurrentImage } from '@/src/composables/useCurrentImage';
 import { useLocalFHIRStore } from '../store/local-fhir-store';
-import { useMedgemmaStore } from '../store/medgemma-store';
+import { useBackendModelStore } from '../store/backend-model-store';
 import { useServerStore, ConnectionState } from '@/src/store/server';
 
 // --- Markdown Renderer Setup ---
@@ -13,7 +13,7 @@ const md = new MarkdownIt({ breaks: true });
 
 // --- Store and Composables Setup ---
 const localFHIRStore = useLocalFHIRStore();
-const medgemmaStore = useMedgemmaStore();
+const backendModelStore = useBackendModelStore();
 const serverStore = useServerStore();
 
 const { selectedPatient } = storeToRefs(localFHIRStore);
@@ -69,24 +69,24 @@ const sendMessage = async () => {
     // resources, so we must extract them.
     const payload = {
         prompt: text,
-        heart_rate: medgemmaStore.vitals.heart_rate
+        heart_rate: backendModelStore.vitals.heart_rate
             ?.map(obs => obs?.valueQuantity?.value)
             .filter(v => v != null) ?? [],
-        respiratory_rate: medgemmaStore.vitals.respiratory_rate
+        respiratory_rate: backendModelStore.vitals.respiratory_rate
             ?.map(obs => obs?.valueQuantity?.value)
             .filter(v => v != null) ?? [],
-        spo2: medgemmaStore.vitals.spo2
+        spo2: backendModelStore.vitals.spo2
             ?.map(obs => obs?.valueQuantity?.value)
             .filter(v => v != null) ?? [],
     };
 
-    medgemmaStore.setAnalysisInput(selectedPatient.value.id, payload);
+    backendModelStore.setAnalysisInput(selectedPatient.value.id, payload);
 
     // Invoke the RPC call
     await client.call('medgemmaAnalysis', [selectedPatient.value.id, image_id, currentSlice.value]);
 
     // Get the data outputs from the store
-    const botResponse = medgemmaStore.analysisOutput[selectedPatient.value.id];
+    const botResponse = backendModelStore.analysisOutput[selectedPatient.value.id];
     if (!botResponse || typeof botResponse !== 'string') {
         throw new Error("Received an invalid response from the server.");
     }
