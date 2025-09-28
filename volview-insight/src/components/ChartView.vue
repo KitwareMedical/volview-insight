@@ -4,6 +4,7 @@ import FHIR from 'fhirclient';
 import type { Bundle } from '@medplum/fhirtypes';
 import { storeToRefs } from 'pinia';
 import { useLocalFHIRStore } from '../store/local-fhir-store';
+import { usePatientStore } from '../store/patient-store';
 import { Line } from 'vue-chartjs';
 import {
   Chart as ChartJS,
@@ -63,9 +64,10 @@ ChartJS.register(
 
 // Refs
 const localFHIRStore = useLocalFHIRStore();
-const { getCurrentPatient } = localFHIRStore;
+const patientStore = usePatientStore();
 const { hostURL: localServerUrl } = storeToRefs(localFHIRStore);
-const currentPatient = getCurrentPatient();
+const { selectedPatient: currentPatient, vitals } = storeToRefs(patientStore);
+
 const fhirClient = FHIR.client({
   serverUrl: localServerUrl.value
 });
@@ -75,15 +77,7 @@ const conditions = ref<any[]>([]);
 const timeSeriesChartData = ref<ChartData<'line', ScatterDataPoint[]>>({
   datasets: [],
 });
-const vitals = ref<Record<string, any[]>>({
-  heart_rate: [],
-  respiratory_rate: [],
-  temperature: [],
-  systolic_bp: [],
-  diastolic_bp: [],
-  mean_arterial_pressure: [],
-  spo2: [],
-});
+
 const vitalStats = ref<Record<string, { mean: number | null; stddev: number | null }>>({
   heart_rate: { mean: null, stddev: null },
   respiratory_rate: { mean: null, stddev: null },
@@ -156,11 +150,6 @@ const chartOptions = ref({
     },
   },
 });
-
-// Watch the vitals ref for changes and update the local fhir store
-watch(vitals, (newVitals) => {
-  localFHIRStore.setVitals(newVitals);
-}, { deep: true }); // Use { deep: true } to watch for changes inside the object
 
 /**
  * Computes the mean and standard deviation for each vital sign.
@@ -387,7 +376,8 @@ async function fetchChartDataForPatient() {
   try {
     observations.value = await fetchAllFHIRResourcesForPatient('Observation', patientResourceId);
     conditions.value = await fetchAllFHIRResourcesForPatient('Condition', patientResourceId);
-    vitals.value = extractAndSortVitalSignsObservations(observations.value);
+    const extractedVitals = extractAndSortVitalSignsObservations(observations.value);
+    patientStore.setVitals(extractedVitals);
     vitalStats.value = computeVitalStats(vitals.value);
 
     await nextTick();
@@ -395,7 +385,7 @@ async function fetchChartDataForPatient() {
 
     console.log("Observations:", observations.value);
     console.log("Conditions:", conditions.value);
-    console.log("Vitals Summary:", vitals);
+    console.log("Vitals Summary:", vitals.value);
     console.log("timeSeriesChartData Summary:", timeSeriesChartData);
     console.log("vitalStats Summary:", vitalStats);
   } catch (error) {

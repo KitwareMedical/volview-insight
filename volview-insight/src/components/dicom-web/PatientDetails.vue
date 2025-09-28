@@ -4,21 +4,21 @@ import { storeToRefs } from 'pinia';
 import { useDicomMetaStore } from '@/src/store/dicom-web/dicom-meta-store';
 import { useDicomWebStore } from '../../store/dicom-web/dicom-web-store';
 import StudyVolumeDicomWeb from './StudyVolumeDicomWeb.vue';
-import { useLocalFHIRStore } from '../../store/local-fhir-store';
+import { usePatientStore } from '../../store/patient-store';
 
 // --- State Management ---
 
-const localFHIRStore = useLocalFHIRStore();
+const patientStore = usePatientStore();
 const dicomStore = useDicomMetaStore();
 const dicomWebStore = useDicomWebStore();
 
-// Get a reactive reference to the patient from the FHIR store.
-const { selectedPatient: selectedFHIRPatient } = storeToRefs(localFHIRStore);
+// Get a reactive reference to the patient from the patient store.
+const { selectedPatient } = storeToRefs(patientStore);
 
 // --- Component State ---
 
 // The key for the currently selected patient.
-const selectedPatientId = computed(() => selectedFHIRPatient.value?.id);
+const selectedPatientId = computed(() => selectedPatient.value?.id);
 
 // Tracks the loading state of the patient's metadata.
 const isFetching = ref(true);

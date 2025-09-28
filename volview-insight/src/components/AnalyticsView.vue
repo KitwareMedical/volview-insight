@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
-import { useLocalFHIRStore } from '../store/local-fhir-store';
+import { storeToRefs } from 'pinia';
+import { usePatientStore } from '../store/patient-store';
 import { usePythonAnalysisStore } from '../store/python-analysis-store';
 import KitwareDatabasePointsToPersons from './icons/KitwareDatabasePointsToPersons.vue';
 import KitwareMagnifyingGlass from './icons/KitwareMagnifyingGlass.vue';
@@ -53,9 +54,8 @@ const analysisSteps = [
 
 // Stores
 const pythonAnalysisStore = usePythonAnalysisStore();
-const localFHIRStore = useLocalFHIRStore();
-const { getCurrentPatient } = localFHIRStore;
-const currentPatient = computed(() => getCurrentPatient());
+const patientStore = usePatientStore();
+const { selectedPatient: currentPatient } = storeToRefs(patientStore);
 
 // Watch for changes to current patient
 watch(currentPatient, () => {
@@ -64,7 +64,7 @@ watch(currentPatient, () => {
 
 // Chart.js data and options
 const chartData = computed(() => {
-  const patientId = currentPatient.value?.value?.id;
+  const patientId = currentPatient.value?.id;
   if (!patientId || !pythonAnalysisStore.analysisDone[patientId]) {
     return { datasets: [] };
   }
@@ -117,7 +117,7 @@ const chartData = computed(() => {
 
 
 const chartOptions = computed(() => {
-    const patientId = currentPatient.value?.value?.id;
+    const patientId = currentPatient.value?.id;
     if (!patientId) return undefined;
 
     const analysisResult = pythonAnalysisStore.analysisOutput[patientId];
@@ -210,7 +210,7 @@ defineOptions({
 
 <template>
   <v-container
-    v-if="currentPatient?.value && pythonAnalysisStore.analysisDone[currentPatient.value.id]"
+    v-if="currentPatient && pythonAnalysisStore.analysisDone[currentPatient.id]"
     fluid
     class="pa-8 d-flex flex-column"
   >

@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia';
 import MarkdownIt from 'markdown-it';
 
 import { useCurrentImage } from '@/src/composables/useCurrentImage';
-import { useLocalFHIRStore } from '../store/local-fhir-store';
+import { usePatientStore } from '../store/patient-store';
 import { useBackendModelStore } from '../store/backend-model-store';
 import { useServerStore, ConnectionState } from '@/src/store/server';
 import useViewSliceStore from '@/src/store/view-configs/slicing';
@@ -21,13 +21,13 @@ const AVAILABLE_MODELS = ['medgemma'] as const;
 type ModelName = typeof AVAILABLE_MODELS[number];
 
 // --- Store and Composables Setup ---
-const localFHIRStore = useLocalFHIRStore();
+const patientStore = usePatientStore();
 const backendModelStore = useBackendModelStore();
 const serverStore = useServerStore();
 const viewSliceStore = useViewSliceStore();
 const md = new MarkdownIt({ breaks: true });
 
-const { selectedPatient } = storeToRefs(localFHIRStore);
+const { selectedPatient, vitals } = storeToRefs(patientStore);
 const { selectedModel } = storeToRefs(backendModelStore);
 const { client } = serverStore;
 const { currentImageID } = useCurrentImage();
@@ -95,7 +95,7 @@ const resetAllChats = () => {
  * @returns An array of numerical vital sign values.
  */
 function extractVitals(field: typeof VITAL_FIELDS[number]): (number | undefined)[] {
-  const observations = localFHIRStore.vitals[field];
+  const observations = vitals.value[field];
   return (
     observations
       ?.map((obs) => obs?.valueQuantity?.value)

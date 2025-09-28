@@ -8,8 +8,8 @@ import { storeToRefs } from 'pinia';
 import { useDicomWebStore } from '../store/dicom-web/dicom-web-store';
 import { useDicomMetaStore } from '@/src/store/dicom-web/dicom-meta-store';
 
-// Manages app-wide state, including the currently selected patient (from FHIR).
-import { useLocalFHIRStore } from '../store/local-fhir-store';
+// Manages app-wide state for the currently selected patient.
+import { usePatientStore } from '../store/patient-store';
 
 // --- Component Imports ---
 import PatientDetails from './dicom-web/PatientDetails.vue';
@@ -18,13 +18,12 @@ import PatientDetails from './dicom-web/PatientDetails.vue';
 
 const dicomWebStore = useDicomWebStore();
 const dicomMetaStore = useDicomMetaStore();
-const localFHIRStore = useLocalFHIRStore();
+const patientStore = usePatientStore();
 
 // --- Reactive State from Stores ---
 
-// Get a reactive reference to the patient selected from the FHIR store.
-// We rename it to `selectedFHIRPatient` for maximum clarity on its origin.
-const { selectedPatient: selectedFHIRPatient } = storeToRefs(localFHIRStore);
+// Get a reactive reference to the currently selected patient.
+const { selectedPatient } = storeToRefs(patientStore);
 
 // --- Data Fetching ---
 
@@ -36,21 +35,21 @@ dicomWebStore.fetchDicomsOnce();
 
 /**
  * Finds the detailed patient information from the DICOM store that corresponds
- * to the currently selected patient from the FHIR store.
+ * to the currently selected patient from the patient store.
  * This computed property is reactive and will update automatically if the
  * selected patient changes.
  * @returns { {key: string, name: string} | null }
  */
 const selectedDicomPatient = computed(() => {
   // 1. Ensure a patient is selected in the app's global state.
-  if (!selectedFHIRPatient.value) {
+  if (!selectedPatient.value) {
     return null;
   }
 
   // 2. Find the patient record from the DICOM server data whose PatientID
-  //    matches the ID of the selected patient from the FHIR store.
+  //    matches the ID of the selected patient.
   const foundDicomInfo = Object.values(dicomMetaStore.patientInfo).find(
-    (dicomPatient) => dicomPatient.PatientID === selectedFHIRPatient.value?.id
+    (dicomPatient) => dicomPatient.PatientID === selectedPatient.value?.id
   );
 
   // 3. If a match is found, return a clean object for the template to use.
@@ -79,7 +78,7 @@ const selectedDicomPatient = computed(() => {
     </v-alert>
 
     <div
-      v-else-if="selectedFHIRPatient"
+      v-else-if="selectedPatient"
       class="d-flex flex-column flex-grow-1 min-h-0"
     >
       <div

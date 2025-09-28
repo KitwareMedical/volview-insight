@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { useLocalFHIRStore } from '../store/local-fhir-store';
+import { storeToRefs } from 'pinia';
+import { usePatientStore } from '../store/patient-store';
 import { useCurrentImage } from '@/src/composables/useCurrentImage';
 import { useServerStore, ConnectionState } from '@/src/store/server';
 import { getDataID, makeImageSelection } from '@/src/store/datasets';
@@ -10,9 +11,8 @@ import { useSegmentGroupStore } from '@/src/store/segmentGroups';
 import { usePythonAnalysisStore } from '../store/python-analysis-store';
 
 // --- loaded patient info --- //
-const localFHIRStore = useLocalFHIRStore();
-const { getCurrentPatient } = localFHIRStore;
-const currentPatient = computed(() => getCurrentPatient());
+const patientStore = usePatientStore();
+const { selectedPatient: currentPatient } = storeToRefs(patientStore);
 
 // --- python analysis info --- //
 const pythonAnalysisStore = usePythonAnalysisStore();
@@ -69,14 +69,14 @@ const doExampleAnalysis = async () => {
       samples.push([x, y]);
     }
 
-    if (!currentPatient.value?.value?.id) {
-      throw new Error("Patient ID is null or undefined");
+    if (!currentPatient.value?.id) {
+      throw new Error('Patient ID is null or undefined');
     }
-    pythonAnalysisStore.setAnalysisInput(currentPatient.value.value.id, samples);
+    pythonAnalysisStore.setAnalysisInput(currentPatient.value.id, samples);
 
-    await client.call('exampleAnalysis', [currentPatient.value.value.id]);
+    await client.call('exampleAnalysis', [currentPatient.value.id]);
 
-    const output = pythonAnalysisStore.analysisOutput[currentPatient.value.value.id];
+    const output = pythonAnalysisStore.analysisOutput[currentPatient.value.id];
     console.log(output);
   } finally {
     exampleAnalysisLoading.value = false;
@@ -123,11 +123,11 @@ watch(currentPatient, () => console.log("Current patient changed!"));
           <v-btn
             @click="doExampleAnalysis"
             :loading="exampleAnalysisLoading"
-            :disabled="!ready || !currentPatient.value"
+            :disabled="!ready || !currentPatient"
           >
             Perform Analysis
           </v-btn>
-          <span v-if="!currentPatient.value" class="ml-4 body-2">
+          <span v-if="!currentPatient" class="ml-4 body-2">
             No patient selected
           </span>
         </v-col>
