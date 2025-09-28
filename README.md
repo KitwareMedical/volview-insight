@@ -76,9 +76,8 @@ cat ./core-volview-patches/MACOS_COMPATIBILITY.patch | git -C core/VolView apply
 
 ### 3) Setup a DICOM server (Orthanc example)
 
-You can use **any** DICOMWeb server. Below are example setups for Orthanc.
-
-#### Option A — Docker
+You can use **any** DICOMWeb server. Below is an example setup for running the
+Orthanc Docker container.
 
 ```bash
 # Run Orthanc with DICOMWeb plugin and NO authentication (dev only)
@@ -89,12 +88,6 @@ docker run --rm -p 8042:8042 -p 4242:4242 \
 ```
 
 Verify at: [http://localhost:8042/](http://localhost:8042/)
-
-#### Option B — macOS (native binary)
-
-1. Download Orthanc: <https://www.orthanc-server.com/static.php?page=download-mac>
-2. Run `startOrthanc.command`  
-3. Verify at: `http://localhost:8042/`
 
 ---
 
