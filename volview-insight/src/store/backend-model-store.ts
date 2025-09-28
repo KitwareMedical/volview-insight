@@ -8,7 +8,6 @@ interface State {
   analysisIdList: string[]; // list of analysis ids
   analysisInput: Record<string, Record<string, any>>; // inputs are string-to-array-of-numbers dictionaries
   analysisOutput: Record<string, string | null>; // output is a string (e.g., the result of MedGemma)
-  vitals: Record<string, any[]>; // Vitals data for the patient
 }
 
 export const useBackendModelStore = defineStore('backend-model-store', {
@@ -20,15 +19,6 @@ export const useBackendModelStore = defineStore('backend-model-store', {
     analysisIdList: [],
     analysisInput: Object.create(null),
     analysisOutput: Object.create(null),
-    vitals: {
-      heart_rate: [],
-      respiratory_rate: [],
-      temperature: [],
-      systolic_bp: [],
-      diastolic_bp: [],
-      mean_arterial_pressure: [],
-      spo2: [],
-    },
   }),
 
   /**
@@ -41,14 +31,6 @@ export const useBackendModelStore = defineStore('backend-model-store', {
      */
     setModel(model: string) {
       this.selectedModel = model;
-    },
-
-    /**
-     * Sets the current patient's vitals data in the store.
-     * @param newVitals - An object where keys are vital names and values are arrays of FHIR Observations.
-     */
-    setVitals(newVitals: Record<string, any[]>) {
-      this.vitals = newVitals;
     },
 
     addAnalysisId(id: string) {

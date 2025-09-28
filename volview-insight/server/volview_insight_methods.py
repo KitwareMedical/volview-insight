@@ -158,9 +158,10 @@ async def medgemma_analysis(patient_id: str, img_id: str | None = None, active_l
 
     # Get the user prompt and vital signs data 
     backendModel_store = get_current_client_store("backend-model-store")
-    print("Got the backend model store. Now I'm gonna fetch the vitals data from the client")
+    print("Got the backend model store. Now I'm gonna fetch the analysis input dictionary from the client.")
+
     analysis_input = await backendModel_store.analysisInput[patient_id]
-    print("Got the vitals data from the client.")
+    print("Got the analysis input dictionary from the client.")
 
     # Get the image
     if img_id is not None:
