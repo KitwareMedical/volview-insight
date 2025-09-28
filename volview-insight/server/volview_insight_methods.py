@@ -10,6 +10,7 @@ from sklearn.linear_model import LinearRegression
 
 from volview_insight_seg_inference import run_volview_insight_seg_inference
 from volview_insight_medgemma_inference import run_volview_insight_medgemma_inference
+from volview_insight_nvidia_cxr_inference import run_volview_insight_nvidia_cxr_inference
 from volview_server import VolViewApi, get_current_client_store, get_current_session
 from volview_server.transformers import (
     convert_itk_to_vtkjs_image,
@@ -159,8 +160,17 @@ def do_medgemma_inference(serialized_img: Dict[str, Any], analysis_input: Dict )
 
     return medgemma_response
 
+def do_nvidia_cxr_inference(serialized_img: Dict[str, Any], analysis_input: Dict) -> str:
+    """Runs NVIDIA CXR inference."""
+    itk_img = convert_vtkjs_to_itk_image(serialized_img)
+    response = run_volview_insight_nvidia_cxr_inference(
+        input_data=analysis_input, itk_img=itk_img
+    )
+    return response
+
 INFERENCE_DISPATCH = {
     "medgemma": do_medgemma_inference,
+    "nvidia-cxr": do_nvidia_cxr_inference,
 }
 
 

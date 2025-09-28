@@ -17,7 +17,7 @@ const TARGET_VIEW_ID = 'Axial';
 const VITAL_FIELDS = ['heart_rate', 'respiratory_rate', 'spo2'] as const;
 
 /** Available backend models for selection. */
-const AVAILABLE_MODELS = ['medgemma'] as const;
+const AVAILABLE_MODELS = ['medgemma', 'nvidia-cxr'] as const;
 type ModelName = typeof AVAILABLE_MODELS[number];
 
 // --- Store and Composables Setup ---
