@@ -35,13 +35,173 @@
 
 ### 0) Prerequisites
 
-Install the following:
+**For Docker Setup (Recommended):**
+- **Docker** `20.10.0` or later
+- **Docker Compose** v2.0 or later (included with Docker Desktop)
+
+**For Manual Setup:**
 - **Node.js** (use `nvm` to manage versions)
 - **Python** ≥ `3.10` (tested with 3.10)
 - **Poetry** `2.1.2`
-- **Docker** `28.0.04`
+- **Docker** `20.10.0` or later
 - A **DICOMWeb** server (e.g., Orthanc)
 - A **FHIR** server (e.g., HAPI on FHIR)
+
+---
+
+### 🐳 **Option A: Docker Orchestration (Recommended)**
+
+The easiest way to get started is using our Docker orchestration setup:
+
+#### 1) Clone and setup
+```bash
+git clone https://github.com/KitwareMedical/volview-insight.git
+cd volview-insight
+git submodule update --init
+
+# Apply VolView patches
+cat ./core-volview-patches/VOLVIEW_BACKEND.patch | git -C core/VolView apply
+# macOS only: cat ./core-volview-patches/MACOS_COMPATIBILITY.patch | git -C core/VolView apply
+```
+
+#### 2) Setup volumes and environment
+```bash
+# Setup data volumes (creates volumes/ directory structure)
+./scripts/setup-volumes.sh
+
+# Create environment file from template
+cp env.example .env
+
+# Edit .env file and add your HF_TOKEN for AI models
+nano .env
+# Add your Hugging Face token: HF_TOKEN=hf_your_token_here
+```
+
+**Required volumes structure:**
+- `volumes/orthanc-data/` - DICOM image storage organized by patient directories
+- `volumes/hapi-fhir-data/` - FHIR healthcare data with individual patient files
+- `volumes/model-cache/` - AI model cache for inference
+
+**Expected data organization:**
+```
+volumes/
+├── orthanc-data/
+│   ├── patient_[ID]/             # Patient directories organized by Patient ID
+│   │   ├── study1.dcm           # DICOM files for this patient
+│   │   └── study2.dcm
+│   └── dicom_metadata.json      # Import metadata tracking (optional)
+├── hapi-fhir-data/
+│   ├── patient_*.json           # Individual FHIR patient resources
+│   ├── patients.json            # Combined patient list (optional)
+│   └── fhir/                    # Additional FHIR resources (optional)
+│       ├── condition/
+│       ├── observation/
+│       └── ...
+└── model-cache/                 # AI models cached locally
+```
+
+#### 3) Import your data (Optional)
+
+If you have medical data to work with, you can import it using these methods:
+
+**Option A: Auto-import from volumes**
+If you have data organized in the `volumes/` directory structure:
+```bash
+# Auto-import existing data to running servers
+./scripts/auto-import-data.sh
+```
+
+**Option B: Direct API uploads**
+Upload data directly through the application APIs:
+- **DICOM**: Use Orthanc's REST API at http://localhost:8042
+- **FHIR**: Use HAPI FHIR's REST API at http://localhost:3000
+
+**Data requirements:**
+- **DICOM files**: Must contain Patient ID in DICOM headers
+- **FHIR data**: Patient resources with matching Patient IDs
+- **Patient matching**: Both datasets should use the same Patient ID system for proper correlation
+
+> **Important**: The application only displays data where Patient IDs match between FHIR and DICOM/Orthanc. If a patient exists in FHIR but has no corresponding DICOM studies with the same Patient ID, or vice versa, that data will not be available in the application interface.
+
+#### 4) Start development environment
+```bash
+# For development (Vite dev server + hot reloading)
+./scripts/start-dev.sh
+
+# For production (nginx + optimized build)
+./scripts/start-prod.sh
+
+# To stop all services
+./scripts/stop.sh
+```
+
+**Access Points:**
+- **Frontend**: http://localhost:8080
+- **Backend API**: http://localhost:4014  
+- **Orthanc DICOM**: http://localhost:8042
+- **HAPI FHIR**: http://localhost:3000
+- **Orthanc CORS Proxy**: http://localhost:5173
+
+**Development Features:**
+- ✅ Hot reloading with Vite dev server
+- ✅ Live code updates with volume mounts  
+- ✅ All services orchestrated automatically
+- ✅ CORS proxy for DICOM Web API access
+- ✅ Environment variables pre-configured
+
+**Production Features:**
+- ✅ nginx serving optimized static files
+- ✅ API proxying with CORS headers
+- ✅ Gzip compression and caching
+- ✅ Resource limits and restart policies
+
+#### 5) Using the application
+
+Once all services are running:
+
+1. **Open the application**: Navigate to http://localhost:8080
+2. **Connect to FHIR**: Click "Connect" in the FHIR Patients section
+3. **Select a patient**: Choose from the loaded patient list  
+4. **View imaging studies**: Patient images will appear in the DICOM section
+5. **Explore AI features**: Use the analysis modules with your medical data
+
+**Expected behavior:**
+- ✅ FHIR patients load with proper names
+- ✅ DICOM studies match FHIR patients by Patient ID
+- ✅ Patient names display correctly even if DICOM files are anonymized
+- ✅ Medical images load and display in the 3D viewer
+
+---
+
+### 🔧 Troubleshooting
+
+**"No matching imaging studies found"**
+- Ensure Patient IDs exactly match between FHIR and DICOM data (case-sensitive)
+- Check that both FHIR patients and DICOM studies were imported successfully
+- Verify the Patient ID field exists in DICOM headers and FHIR resources
+- Run `auto-import-data.sh` to verify import completed successfully
+- Verify services are running: `docker-compose ps`
+
+**FHIR connection errors**
+- Ensure HAPI FHIR server is accessible at http://localhost:3000
+- Check that FHIR data was imported correctly
+- Restart services: `docker-compose restart`
+
+**Patient names appear blank**
+- This can happen with anonymized DICOM datasets
+- The application automatically falls back to FHIR patient names when available
+- Ensure FHIR data includes patient names in the correct format
+
+**CORS errors accessing DICOM**
+- Development mode uses CORS proxy at http://localhost:5173
+- Ensure Orthanc proxy service is running
+- Check browser developer console for detailed errors
+
+---
+
+### ⚙️ **Option B: Manual Setup**
+
+If you prefer to set up services manually:
 
 ---
 
