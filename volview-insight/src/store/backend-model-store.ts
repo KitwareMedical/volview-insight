@@ -4,12 +4,11 @@ import { defineStore } from 'pinia';
  * Interface for the MedGemma store's state.
  */
 interface State {
+  selectedModel: string; // The currently selected backend model
   analysisIdList: string[]; // list of analysis ids
-  analysisDone: Record<string, boolean>; // finished state is bool
-  analysisInput: Record<string, Record<string, any>>;  // inputs are string-to-array-of-numbers dictionaries
+  analysisInput: Record<string, Record<string, any>>; // inputs are string-to-array-of-numbers dictionaries
   analysisOutput: Record<string, string | null>; // output is a string (e.g., the result of MedGemma)
-  // Add vitals to the state interface
-  vitals: Record<string, any[]>;
+  vitals: Record<string, any[]>; // Vitals data for the patient
 }
 
 export const useBackendModelStore = defineStore('backend-model-store', {
@@ -17,12 +16,10 @@ export const useBackendModelStore = defineStore('backend-model-store', {
    * Defines the initial state of the store.
    */
   state: (): State => ({
+    selectedModel: 'medgemma', // Default model on initialization
     analysisIdList: [],
-    analysisDone: Object.create(null),
     analysisInput: Object.create(null),
     analysisOutput: Object.create(null),
-
-    // Define the initial state for vitals
     vitals: {
       heart_rate: [],
       respiratory_rate: [],
@@ -38,6 +35,14 @@ export const useBackendModelStore = defineStore('backend-model-store', {
    * Actions to modify the store's state.
    */
   actions: {
+    /**
+     * Sets the backend model to use for analysis.
+     * @param model - The name of the model (e.g., 'medgemma-4b').
+     */
+    setModel(model: string) {
+      this.selectedModel = model;
+    },
+
     /**
      * Sets the current patient's vitals data in the store.
      * @param newVitals - An object where keys are vital names and values are arrays of FHIR Observations.
@@ -62,12 +67,11 @@ export const useBackendModelStore = defineStore('backend-model-store', {
     },
 
     /**
-     * Stores the result of the analysis and marks it as done.
+     * Stores the result of the analysis.
      * @param result - A string representing the MedGemma model's output.
      */
     setAnalysisResult(id: string, result: string) {
       this.analysisOutput[id] = result;
-      this.analysisDone[id] = true;
     },
 
     /**
@@ -79,9 +83,6 @@ export const useBackendModelStore = defineStore('backend-model-store', {
       }
       if (id in this.analysisOutput) {
         this.analysisOutput[id] = null;
-      }
-      if (id in this.analysisDone) {
-        this.analysisDone[id] = false;
       }
     },
   },
