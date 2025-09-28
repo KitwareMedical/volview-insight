@@ -157,9 +157,9 @@ async def medgemma_analysis(patient_id: str, img_id: str | None = None, active_l
     print(f"Started medgemma analysis...")
 
     # Get the user prompt and vital signs data 
-    medgemma_store = get_current_client_store("medgemma-store")
-    print("Got the medgemma store. Now I'm gonna fetch the vitals data from the client")
-    analysis_input = await medgemma_store.analysisInput[patient_id]
+    backendModel_store = get_current_client_store("backend-model-store")
+    print("Got the backend model store. Now I'm gonna fetch the vitals data from the client")
+    analysis_input = await backendModel_store.analysisInput[patient_id]
     print("Got the vitals data from the client.")
 
     # Get the image
@@ -190,7 +190,7 @@ async def medgemma_analysis(patient_id: str, img_id: str | None = None, active_l
             process_pool, do_medgemma_inference, serialized_img_vtkjs, analysis_input
         )
 
-        await medgemma_store.setAnalysisResult(patient_id, medgemma_response)
+        await backendModel_store.setAnalysisResult(patient_id, medgemma_response)
 
         print(f"MedGemma analysis finished. Response:\n{medgemma_response}")
 
