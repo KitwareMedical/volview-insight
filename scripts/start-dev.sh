@@ -2,6 +2,8 @@
 set -e
 
 echo "🚀 Starting VolView Insight in development mode..."
+echo "   Frontend: Vite dev server with hot reloading"
+echo "   API calls: Direct to backend services"
 
 # Check if .env exists
 if [ ! -f ".env" ]; then
@@ -29,73 +31,46 @@ echo ""
 
 # Start services
 echo "🐳 Starting Docker services..."
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+echo "   Using: docker-compose.yml + docker-compose.dev.yml"
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
-# Wait for services to be ready
-echo "⏳ Waiting for services to be ready..."
-sleep 10
-
-# Check service status
-echo "🔍 Checking service status..."
-
-# Check Orthanc
-if curl -f http://localhost:8042/system >/dev/null 2>&1; then
-    echo "✅ Orthanc is running at http://localhost:8042"
-else
-    echo "⚠️  Orthanc may still be starting..."
-fi
-
-# Check HAPI FHIR
-if curl -f http://localhost:3000/hapi-fhir-jpaserver/fhir/metadata >/dev/null 2>&1; then
-    echo "✅ HAPI FHIR is running at http://localhost:3000/hapi-fhir-jpaserver/fhir/"
-else
-    echo "⚠️  HAPI FHIR may still be starting..."
-fi
-
-# Check Backend
-if curl -f http://localhost:4014 >/dev/null 2>&1; then
-    echo "✅ Backend is running at http://localhost:4014"
-else
-    echo "⚠️  Backend may still be starting..."
-fi
-
-# Check Frontend
-if curl -f http://localhost:8080 >/dev/null 2>&1; then
-    echo "✅ Frontend is running at http://localhost:8080"
-else
-    echo "⚠️  Frontend may still be starting..."
-fi
+# In development mode, services run in foreground with logs
+# The script will continue running and showing logs
+# Press Ctrl+C to stop all services
 
 echo ""
-echo "🎉 VolView Insight is starting up!"
+echo "🎉 VolView Insight development server started!"
 echo ""
-echo "🌐 Access points:"
-echo "   - Frontend: http://localhost:8080"
-echo "   - Backend: http://localhost:4014"
-echo "   - Orthanc: http://localhost:8042"
+echo "🌐 Development access points:"
+echo "   - Frontend (Vite dev): http://localhost:8080"
+echo "   - Backend API: http://localhost:4014"
+echo "   - Orthanc DICOM: http://localhost:8042"
 echo "   - HAPI FHIR: http://localhost:3000/hapi-fhir-jpaserver/fhir/"
 echo "   - Orthanc Proxy: http://localhost:5173"
 echo ""
-echo "📊 Useful commands:"
-echo "   - View logs: docker-compose logs -f"
-echo "   - Stop services: docker-compose down"
-echo "   - Restart services: docker-compose restart"
-echo "   - Import data manually: ./scripts/auto-import-data.sh"
+echo "🔄 Development Features:"
+echo "   - ✅ Hot reloading enabled"
+echo "   - ✅ Source code mounted for live updates"
+echo "   - ✅ Direct API access (no proxy)"
 echo ""
-echo "⏳ Services may take a few minutes to fully initialize..."
-echo "   Check the logs if any service doesn't respond: docker-compose logs [service-name]"
-echo ""
-echo "📥 Auto-import: Checking for data to import..."
+echo "📊 Management:"
+echo "   - Stop: Press Ctrl+C"
+echo "   - View specific logs: docker-compose logs -f [service-name]"
+echo "   - Run in background: Add -d flag to docker-compose command"
 
-# Check if data exists and run auto-import
+# Note: Removed service health checks since we're running in foreground
+# Services will show their startup logs directly
+
+# Auto-import data if available
+echo "📥 Checking for data to import..."
 if [ -d "./volumes/orthanc-data" ] && [ -d "./volumes/hapi-fhir-data" ]; then
-    echo "   Found data in volumes, running auto-import..."
-    echo "   This may take a few minutes..."
-    ./scripts/auto-import-data.sh
-    echo ""
-    echo "✅ Auto-import completed!"
+    echo "   Data volumes found with existing data"
+    echo "   To import data: ./scripts/auto-import-data.sh"
 else
     echo "   No data found in volumes directory"
     echo "   To import data later, run: ./scripts/auto-import-data.sh"
 fi
 echo ""
+
+# Note: In development mode, the docker-compose command above will run in foreground
+# showing all service logs. The script will block here until Ctrl+C is pressed.
