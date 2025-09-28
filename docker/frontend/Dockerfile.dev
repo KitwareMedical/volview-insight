@@ -1,3 +1,4 @@
+# Development Dockerfile - Vite dev server only
 FROM node:18.17.1-alpine
 WORKDIR /app
 
@@ -17,20 +18,19 @@ RUN apk add --no-cache \
     freetype-dev \
     git
 
-# Copy everything first
+# Copy all source code first
 COPY . .
 
-# Install dependencies
+# Install dependencies in correct order
 RUN npm install --force
-RUN cd volview-insight && npm install
-RUN cd core/VolView && npm install
+RUN cd volview-insight && npm install --force
+RUN cd core/VolView && npm install --force
 
-# Build the project
+# Run setup (but don't build - we'll use dev server)
 RUN npm run setup-project
-RUN npm run build
 
-# Expose port
+# Expose Vite dev server port
 EXPOSE 8080
 
-# Start preview server
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "8080"]
+# Start Vite dev server with hot reloading
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8080"]

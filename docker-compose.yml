@@ -1,18 +1,17 @@
 version: '3.8'
 
 services:
-  # VolView Insight Web Application
+  # VolView Insight Web Application (Production - nginx + static files)
   volview-insight-web:
     build:
       context: .
       dockerfile: docker/frontend/Dockerfile
-    ports:
-      - "8080:8080"  # Development server
-      - "4173:4173"  # Preview server
+    # ports: defined in environment-specific override files
     environment:
-      - VITE_REMOTE_SERVER_URL=http://backend:4014/
-      - VITE_DICOM_WEB_URL=http://orthanc-proxy:5173/dicom-web/
-      - VITE_FHIR_SERVER_URL=http://hapi-fhir:3000/hapi-fhir-jpaserver/fhir/
+      # Build-time environment variables (embedded in static files)
+      - VITE_REMOTE_SERVER_URL=/api/
+      - VITE_DICOM_WEB_URL=/dicom-web/
+      - VITE_FHIR_SERVER_URL=/fhir/
       - NODE_ENV=production
     volumes:
       - ./volview-insight/src:/app/volview-insight/src
@@ -40,6 +39,7 @@ services:
     depends_on:
       - orthanc
       - hapi-fhir
+
     networks:
       - volview-network
 
@@ -60,6 +60,7 @@ services:
       - ORTHANC__DICOM_PORT=4242
     volumes:
       - orthanc-data:/var/lib/orthanc/db
+
     networks:
       - volview-network
 
@@ -74,6 +75,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=
     volumes:
       - hapi-fhir-data:/data
+
     networks:
       - volview-network
 

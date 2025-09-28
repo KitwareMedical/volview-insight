@@ -6,6 +6,8 @@ services:
     build:
       context: .
       dockerfile: docker/frontend/Dockerfile
+    ports:
+      - "8080:80"  # nginx serves on port 80
     environment:
       - NODE_ENV=production
     volumes:
