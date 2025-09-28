@@ -8,7 +8,6 @@ import { useImageStore } from '@/src/store/datasets-images';
 import { useDatasetStore } from '@/src/store/datasets';
 import { useSegmentGroupStore } from '@/src/store/segmentGroups';
 import { usePythonAnalysisStore } from '../store/python-analysis-store';
-import { useBackendModelStore } from '../store/backend-model-store'; // <-- Import the new store
 
 // --- loaded patient info --- //
 const localFHIRStore = useLocalFHIRStore();
@@ -17,9 +16,6 @@ const currentPatient = computed(() => getCurrentPatient());
 
 // --- python analysis info --- //
 const pythonAnalysisStore = usePythonAnalysisStore();
-
-// --- MedGemma store --- //
-const backendModelStore = useBackendModelStore(); // <-- Init MedGemma store
 
 // --- loaded image --- //
 const dataStore = useDatasetStore();
