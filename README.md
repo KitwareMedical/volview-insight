@@ -65,12 +65,9 @@ git submodule update --init
 
 ---
 
-### 2) Apply VolView patches
+### 2) Apply VolView patches (if applicable)
 
 ```bash
-# All platforms
-cat ./core-volview-patches/VOLVIEW_BACKEND.patch | git -C core/VolView apply
-
 # macOS only
 cat ./core-volview-patches/MACOS_COMPATIBILITY.patch | git -C core/VolView apply
 ```
