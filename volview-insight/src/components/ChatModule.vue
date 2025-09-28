@@ -28,7 +28,6 @@ const viewSliceStore = useViewSliceStore();
 const md = new MarkdownIt({ breaks: true });
 
 const { selectedPatient } = storeToRefs(localFHIRStore);
-// Assuming 'selectedModel' state and 'setModel' action exist in the backendModelStore
 const { selectedModel } = storeToRefs(backendModelStore);
 const { client } = serverStore;
 const { currentImageID } = useCurrentImage();
@@ -80,7 +79,6 @@ watch(selectedPatient, () => {
  * @param model The name of the model to select.
  */
 const selectModel = (model: ModelName) => {
-  // The user will add this action to the store separately.
   backendModelStore.setModel(model);
 };
 
@@ -151,8 +149,7 @@ const sendMessage = async () => {
 
     backendModelStore.setAnalysisInput(patientID, payload);
 
-    // Invoke the RPC call
-    await client.call('medgemmaAnalysis', [
+    await client.call('multimodalLlmAnalysis', [
       patientID,
       currentImageID.value ?? null,
       currentSlice.value,
@@ -167,7 +164,7 @@ const sendMessage = async () => {
 
     appendMessage(botResponse, 'bot');
   } catch (error) {
-    console.error('Error calling medgemmaAnalysis:', error);
+    console.error('Error calling multimodalLlmAnalysis:', error);
     const errorMessage = (error as Error).message.includes('No patient')
       ? 'Please select a patient before chatting.'
       : 'Sorry, an error occurred while processing your request. Please try again.';
