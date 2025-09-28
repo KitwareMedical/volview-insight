@@ -74,7 +74,7 @@ cat ./core-volview-patches/MACOS_COMPATIBILITY.patch | git -C core/VolView apply
 
 ---
 
-### 3) Setup a DICOM server (Orthanc example)
+### 3) Setup a DICOM server
 
 You can use **any** DICOMWeb server. Below is an example setup for running the
 Orthanc Docker container.
@@ -91,9 +91,9 @@ Verify at: [http://localhost:8042/](http://localhost:8042/)
 
 ---
 
-### 4) Setup a FHIR server (HAPI on FHIR example)
+### 4) Setup a FHIR endpoint
 
-You can use **any** FHIR R4 server. Example with SMART on FHIR HAPI image:
+You can use **any** FHIR R4 endpoint. Example with HAPI FHIR image:
 
 ```bash
 docker pull smartonfhir/hapi-5:r4-empty
@@ -104,7 +104,7 @@ Verify at: [http://localhost:3000/hapi-fhir-jpaserver/fhir/Patient](http://local
 
 ---
 
-### 5) Setup the Python backend (AI pipelines)
+### 5) Setup the Python backend
 
 The Python backend executes multimodal pipelines. You can extend it with your own.
 
@@ -118,6 +118,7 @@ poetry run python -m volview_server -P 4014 -H 0.0.0.0 volview_insight_methods.p
 > If you encounter issues, remove `-P 4014`.
 
 #### Example integrations
+
 - **MedGemma**: This is a gated public model from Hugging Face (requires account + access token and authentication via huggingface-cli login or environment variable HUGGINGFACE_HUB_TOKEN) 
 - **A Lung Segmentation MONAI model**: To use the lung segmentation model, the following checkpoint file needs to be installed in the volview-insight/server subfolder
 
@@ -128,7 +129,20 @@ curl https://data.kitware.com/api/v1/file/65bd8c2f03c3115909f73dd7/download --ou
 
 ---
 
-### 6) Start the VolView Insight web app
+### 6) Orthanc proxy (for CORS testing only)
+
+```bash
+cd volview-insight/orthanc-proxy
+nvm use 23.10.0
+npm install
+npm run dev
+```
+
+> ⚠️ Must use **Node.js 23.10.0** for the proxy. Runs at port `5173`.
+
+---
+
+### 7) Start the VolView Insight web app
 
 > Make sure you have access to a global python environment running Python
 > 3.10.11. You will have problems with `npm install --force` using some later
@@ -143,21 +157,6 @@ npm run preview
 ```
 
 Now open: **http://localhost:4173/**
-
----
-
-### 7) (Optional) Orthanc proxy (for CORS testing only)
-
-```bash
-cd volview-insight/orthanc-proxy
-nvm use 23.10.0
-npm install
-npm run dev
-```
-
-> ⚠️ Must use **Node.js 23.10.0** for the proxy. Runs at port `5173`.
-
----
 
 ---
 
