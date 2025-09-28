@@ -143,64 +143,7 @@ async def example_analysis(patient_id: str) -> None:
 
     print(f"Example analysis finished and got result [{slope}, {intercept}, {r_squared}]")
 
-@volview.expose("medgemmaAnalysis")
-async def medgemma_analysis(patient_id: str, img_id: str | None = None, active_layer: int | None = None) -> None:
-    """Runs text-based or multi-modal inference using the 27b multimodal MedGemma model.
-    If an img_id is specified, then the corresponding image and patient's vital signs records
-    are used by MedGemma to respond to the user's prompt.
-
-    Args:
-        patient_id: The ID of the patient.
-        img_id: The ID of the image to provide to MedGemma
-        active_layer: The index of the 2D slice to process. If None, assumes 2D image.
-    """
-    print(f"Started medgemma analysis...")
-
-    # Get the user prompt and vital signs data 
-    backendModel_store = get_current_client_store("backend-model-store")
-    print("Got the backend model store. Now I'm gonna fetch the analysis input dictionary from the client.")
-
-    analysis_input = await backendModel_store.analysisInput[patient_id]
-    print("Got the analysis input dictionary from the client.")
-
-    # Get the image
-    if img_id is not None:
-        image_store = get_current_client_store("images")
-        print("Got the images store. Now I'm gonna fetch the image from the client.")
-        state = get_current_session(default_factory=ClientState)
-
-        base_image_id = get_base_image(state, img_id)
-        img = await image_store.dataIndex[base_image_id]
-
-        print("Got the image data from the client. Going to start image processing.")
-        img_slice = get_image_slice(img, active_layer)
-
-    else:
-        img_slice = None
-        print("MedGemma analysis did not get an image id. Will not use image...")
-    
-    print(f"Got {analysis_input} as the input. The type is {type(analysis_input)}.")
-
-    # ==== Processing logic ====
-    serialized_img_vtkjs = convert_itk_to_vtkjs_image(img_slice)
-    loop = asyncio.get_event_loop()
-
-    try:
-        # Does text need to be serialized?
-        medgemma_response = await loop.run_in_executor(
-            process_pool, do_medgemma_inference, serialized_img_vtkjs, analysis_input
-        )
-
-        await backendModel_store.setAnalysisResult(patient_id, medgemma_response)
-
-        print(f"MedGemma analysis finished. Response:\n{medgemma_response}")
-
-    except Exception as e:
-        raise RuntimeError(
-            f"Unexpected error during MedGemma inference: {e}"
-        ) from e
-
-def do_medgemma_inference(serialized_img: Dict[str, Any], analysis_input: Dict ) -> Dict[str, Any]:
+def do_medgemma_inference(serialized_img: Dict[str, Any], analysis_input: Dict ) -> str:
     """Runs medGemma inference
 
     Args:
@@ -215,6 +158,67 @@ def do_medgemma_inference(serialized_img: Dict[str, Any], analysis_input: Dict )
     medgemma_response = run_volview_insight_medgemma_inference(input_data = analysis_input, itk_img = itk_img)
 
     return medgemma_response
+
+INFERENCE_DISPATCH = {
+    "medgemma": do_medgemma_inference,
+}
+
+
+@volview.expose("multimodalLlmAnalysis")
+async def multimodal_llm_analysis(patient_id: str, img_id: str | None = None, active_layer: int | None = None) -> None:
+    """Runs multimodal LLM inference based on the selected model.
+
+    If an img_id is specified, the corresponding image and patient's vital signs
+    records are used by the model to respond to the user's prompt.
+
+    Args:
+        patient_id: The ID of the patient.
+        img_id: The ID of the image to provide to the model.
+        active_layer: The index of the 2D slice to process. If None, assumes 2D image.
+    """
+    backend_store = get_current_client_store("backend-model-store")
+    selected_model = await backend_store.selectedModel
+    print(f"Starting multimodal LLM analysis with model: {selected_model}...")
+
+    # --- 1. Get user prompt and vital signs data ---
+    print("Got the backend model store. Fetching the analysis input dictionary...")
+    analysis_input_dict = await backend_store.analysisInput[patient_id]
+    print(f"Got analysis input: {analysis_input_dict}")
+
+    # --- 2. Get the appropriate inference function from the dispatch table ---
+    inference_function = INFERENCE_DISPATCH.get(selected_model)
+    if not inference_function:
+        raise ValueError(f"Unknown model specified: '{selected_model}'. Available models: {list(INFERENCE_DISPATCH.keys())}")
+
+    # --- 3. Get and process the image, if provided ---
+    serialized_img_vtkjs = None
+    if img_id is not None:
+        image_store = get_current_client_store("images")
+        print("Got the images store. Fetching the image from the client...")
+        state = get_current_session(default_factory=ClientState)
+        base_image_id = get_base_image(state, img_id)
+        img = await image_store.dataIndex[base_image_id]
+        print("Got the image data from the client. Starting image processing.")
+        img_slice = get_image_slice(img, active_layer)
+        serialized_img_vtkjs = convert_itk_to_vtkjs_image(img_slice)
+    else:
+        print(f"Analysis with {selected_model} did not get an image ID. Will proceed without image.")
+
+    # --- 4. Execute the selected model's inference logic ---
+    loop = asyncio.get_event_loop()
+    try:
+        model_response = await loop.run_in_executor(
+            process_pool, inference_function, serialized_img_vtkjs, analysis_input_dict
+        )
+        await backend_store.setAnalysisResult(patient_id, model_response)
+        
+        # Restore the final, detailed response log
+        print(f"Analysis with {selected_model} finished. Response:\n{model_response}")
+
+    except Exception as e:
+        raise RuntimeError(
+            f"Unexpected error during {selected_model} inference: {e}"
+        ) from e
 
 def do_lung_segmentation(serialized_img: Dict[str, Any]) -> Dict[str, Any]:
     """Performs lung segmentation on a serialized image using a pre-trained model.
