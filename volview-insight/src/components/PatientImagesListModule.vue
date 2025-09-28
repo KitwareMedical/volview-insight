@@ -57,7 +57,7 @@ const selectedDicomPatient = computed(() => {
   if (foundDicomInfo) {
     return {
       key: foundDicomInfo.PatientID,
-      name: foundDicomInfo.PatientName,
+      name: foundDicomInfo.PatientName || selectedFHIRPatient.value?.name || 'Unknown Patient',
     };
   }
 
