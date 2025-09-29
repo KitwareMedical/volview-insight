@@ -1,22 +1,39 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import MarkdownIt from 'markdown-it';
 import { useCurrentImage } from '@/src/composables/useCurrentImage';
 import { useLocalFHIRStore } from '../store/local-fhir-store';
-import { useMedgemmaStore } from '../store/medgemma-store';
+import { useBackendModelStore } from '../store/backend-model-store';
 import { useServerStore, ConnectionState } from '@/src/store/server';
 
 // --- Markdown Renderer Setup ---
 // Initialize markdown-it. The `breaks: true` option converts '\n' in paragraphs into <br> tags.
 const md = new MarkdownIt({ breaks: true });
 
+// --- Configuration ---
+/** Available backend models for selection. */
+const AVAILABLE_MODELS = [
+  { id: 'medgemma', name: 'MedGemma' },
+  { id: 'mrcxr1', name: 'MONAI reasoning chest x-ray' }
+] as const;
+type ModelName = typeof AVAILABLE_MODELS[number]['id'];
+
+/** List of vital sign fields to extract from the FHIR store. */
+const VITAL_FIELDS = ['heart_rate', 'respiratory_rate', 'spo2'] as const;
+
 // --- Store and Composables Setup ---
 const localFHIRStore = useLocalFHIRStore();
-const medgemmaStore = useMedgemmaStore();
+const backendModelStore = useBackendModelStore();
 const serverStore = useServerStore();
 
+// Import medgemma store for vitals (temporary compatibility)
+import { useMedgemmaStore } from '../store/medgemma-store';
+const medgemmaStore = useMedgemmaStore();
+
 const { selectedPatient } = storeToRefs(localFHIRStore);
+const { selectedModel } = storeToRefs(backendModelStore);
+const { vitals } = storeToRefs(medgemmaStore);
 const { client } = serverStore;
 const { currentImageID } = useCurrentImage();
 
@@ -27,12 +44,13 @@ interface Message {
   sender: 'user' | 'bot';
 }
 
-const messages = ref<Message[]>([]);
+/** Stores chat histories for all models, keyed by model name. */
+const chatHistories = ref<Record<ModelName, Message[]>>({} as Record<ModelName, Message[]>);
 const newMessage = ref('');
 const isTyping = ref(false);
 
 // --- Computed Properties ---
-const ready = computed(() => serverStore.connState === ConnectionState.Connected);
+const isConnected = computed(() => serverStore.connState === ConnectionState.Connected);
 
 // --- current slice being viewed in the Axial view, as it's a 2D view that slices a 3D image --- //
 import useViewSliceStore from '@/src/store/view-configs/slicing';
@@ -45,56 +63,120 @@ const currentSlice = computed(() => {
   return config?.slice ?? null; // Return the slice or a default value
 });
 
-// --- Methods ---
-const appendMessage = (text: string, sender: 'user' | 'bot') => {
-  messages.value.push({ id: Date.now(), text, sender });
+/**
+ * Dynamically returns the message history for the currently selected model.
+ */
+const currentMessages = computed(() => {
+    const model = selectedModel.value as ModelName;
+    return chatHistories.value[model] ?? [];
+});
+
+// --- Watchers ---
+
+/**
+ * Reset all chat histories when the selected patient changes.
+ */
+watch(selectedPatient, () => {
+    resetAllChats();
+});
+
+// --- Utility Functions ---
+
+/**
+ * Selects a model and sets it in the backend store.
+ * @param model The name of the model to select.
+ */
+const selectModel = (model: ModelName) => {
+  backendModelStore.setModel(model);
 };
 
+/**
+ * A convenience function to reset all chat histories.
+ */
+const resetAllChats = () => {
+  chatHistories.value = {} as Record<ModelName, Message[]>;
+};
+
+/**
+ * Extracts the numerical value from a list of FHIR Observation resources for a given vital field.
+ * @param field The vital field name (e.g., 'heart_rate').
+ * @returns An array of numerical vital sign values.
+ */
+function extractVitals(field: typeof VITAL_FIELDS[number]): (number | undefined)[] {
+  const observations = vitals.value[field];
+  return (
+    observations
+      ?.map((obs: any) => obs?.valueQuantity?.value)
+      .filter((v: any): v is number | undefined => v != null) ?? []
+  );
+}
+
+/**
+ * Appends a new message to the chat log for the currently active model.
+ */
+const appendMessage = (text: string, sender: 'user' | 'bot') => {
+  const model = selectedModel.value as ModelName;
+  // Initialize history for the model if it doesn't exist
+  if (!chatHistories.value[model]) {
+    chatHistories.value[model] = [];
+  }
+  chatHistories.value[model].push({ id: Date.now(), text, sender });
+};
+
+// --- Main Method ---
 const sendMessage = async () => {
   const text = newMessage.value.trim();
   if (!text || isTyping.value) return;
+
+  // Initial setup and validation
+  const patientID = selectedPatient.value?.id;
+  if (!patientID) {
+    console.error('No patient is selected.');
+    return;
+  }
 
   appendMessage(text, 'user');
   newMessage.value = '';
   isTyping.value = true;
 
   try {
-    // Set up data inputs from the store
-    if (!selectedPatient.value?.id) {
-      throw new Error("No patient is selected.");
-    }
-    const image_id = currentImageID.value ?? null;
+    // Dynamically build the vital signs part of the payload
+    const vitalPayload = VITAL_FIELDS.reduce(
+      (acc, field) => {
+        acc[field] = extractVitals(field);
+        return acc;
+      },
+      {} as Record<typeof VITAL_FIELDS[number], (number | undefined)[]>
+    );
 
-    // Define the payload. Note that the store contains vitals as FHIR Observation
-    // resources, so we must extract them.
+    // Define the complete payload
     const payload = {
-        prompt: text,
-        heart_rate: medgemmaStore.vitals.heart_rate
-            ?.map(obs => obs?.valueQuantity?.value)
-            .filter(v => v != null) ?? [],
-        respiratory_rate: medgemmaStore.vitals.respiratory_rate
-            ?.map(obs => obs?.valueQuantity?.value)
-            .filter(v => v != null) ?? [],
-        spo2: medgemmaStore.vitals.spo2
-            ?.map(obs => obs?.valueQuantity?.value)
-            .filter(v => v != null) ?? [],
+      prompt: text,
+      ...vitalPayload,
     };
 
-    medgemmaStore.setAnalysisInput(selectedPatient.value.id, payload);
+    backendModelStore.setAnalysisInput(patientID, payload);
 
-    // Invoke the RPC call
-    await client.call('medgemmaAnalysis', [selectedPatient.value.id, image_id, currentSlice.value]);
+    await client.call('multimodalLlmAnalysis', [
+      patientID,
+      currentImageID.value ?? null,
+      currentSlice.value,
+    ]);
 
     // Get the data outputs from the store
-    const botResponse = medgemmaStore.analysisOutput[selectedPatient.value.id];
+    const botResponse = backendModelStore.analysisOutput[patientID];
+
     if (!botResponse || typeof botResponse !== 'string') {
-        throw new Error("Received an invalid response from the server.");
+      throw new Error('Received an invalid or malformed response from the server.');
     }
 
     appendMessage(botResponse, 'bot');
   } catch (error) {
-    console.error("Error calling medgemmaAnalysis:", error);
-    appendMessage("Sorry, an error occurred while processing your request. Please try again.", 'bot');
+    console.error('Error calling multimodalLlmAnalysis:', error);
+    const errorMessage = (error as Error).message.includes('No patient')
+      ? 'Please select a patient before chatting.'
+      : 'Sorry, an error occurred while processing your request. Please try again.';
+    appendMessage(errorMessage, 'bot');
   } finally {
     isTyping.value = false;
   }
@@ -104,9 +186,51 @@ const sendMessage = async () => {
 <template>
   <v-container fluid class="fill-height pa-0">
     <v-card v-if="selectedPatient" class="chat-card">
+      <v-card-title class="d-flex align-center py-2">
+        <span class="text-subtitle-1">AI Assistant</span>
+        <v-spacer></v-spacer>
+
+        <v-menu offset-y>
+          <template v-slot:activator="{ props }">
+            <v-btn
+              v-bind="props"
+              variant="tonal"
+              color="primary"
+              size="small"
+              class="mr-2"
+            >
+              {{ AVAILABLE_MODELS.find(m => m.id === selectedModel)?.name || selectedModel }}
+              <v-icon end>mdi-menu-down</v-icon>
+            </v-btn>
+          </template>
+          <v-list dense>
+            <v-list-item
+              v-for="model in AVAILABLE_MODELS"
+              :key="model.id"
+              @click="selectModel(model.id)"
+              :active="model.id === selectedModel"
+            >
+              <v-list-item-title>{{ model.name }}</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+
+        <v-btn
+            icon="mdi-delete-sweep"
+            variant="text"
+            @click="resetAllChats"
+            size="small"
+        >
+          <v-icon>mdi-delete-sweep</v-icon>
+          <v-tooltip activator="parent" location="bottom">Clear All Chats</v-tooltip>
+        </v-btn>
+      </v-card-title>
+
+      <v-divider />
+
       <v-card-text class="chat-log">
         <div
-          v-for="message in messages"
+          v-for="message in currentMessages"
           :key="message.id"
           :class="['d-flex', message.sender === 'user' ? 'justify-end' : 'justify-start']"
           class="mb-4"
@@ -134,6 +258,7 @@ const sendMessage = async () => {
           variant="solo"
           hide-details
           clearable
+          rounded
         >
           <template #append-inner>
             <v-btn

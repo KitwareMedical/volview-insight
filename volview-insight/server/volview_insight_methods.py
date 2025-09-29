@@ -10,6 +10,7 @@ from sklearn.linear_model import LinearRegression
 
 from volview_insight_seg_inference import run_volview_insight_seg_inference
 from volview_insight_medgemma_inference import run_volview_insight_medgemma_inference
+from volview_insight_mrcxr1_inference import run_volview_insight_mrcxr1_inference
 from volview_server import VolViewApi, get_current_client_store, get_current_session
 from volview_server.transformers import (
     convert_itk_to_vtkjs_image,
@@ -143,18 +144,84 @@ async def example_analysis(patient_id: str) -> None:
 
     print(f"Example analysis finished and got result [{slope}, {intercept}, {r_squared}]")
 
+@volview.expose("multimodalLlmAnalysis")
+async def multimodal_llm_analysis(patient_id: str, img_id: str | None = None, active_layer: int | None = None) -> None:
+    """Runs text-based or multi-modal inference using the selected multimodal model.
+    Supports both MedGemma and MRCxr1 models based on the backend model store selection.
+    If an img_id is specified, then the corresponding image and patient's vital signs records
+    are used by the selected model to respond to the user's prompt.
+
+    Args:
+        patient_id: The ID of the patient.
+        img_id: The ID of the image to provide to the model
+        active_layer: The index of the 2D slice to process. If None, assumes 2D image.
+    """
+    print(f"Started multimodal LLM analysis...")
+
+    # Get the selected model and analysis input
+    backend_model_store = get_current_client_store("backend-model-store")
+    selected_model = await backend_model_store.selectedModel
+    analysis_input = await backend_model_store.analysisInput[patient_id]
+    
+    print(f"Selected model: {selected_model}")
+    print("Got the backend model store. Now I'm gonna fetch the analysis data from the client")
+    print("Got the analysis data from the client.")
+
+    # Get the image
+    if img_id is not None:
+        image_store = get_current_client_store("images")
+        print("Got the images store. Now I'm gonna fetch the image from the client.")
+        state = get_current_session(default_factory=ClientState)
+
+        base_image_id = get_base_image(state, img_id)
+        img = await image_store.dataIndex[base_image_id]
+
+        print("Got the image data from the client. Going to start image processing.")
+        img_slice = get_image_slice(img, active_layer)
+
+    else:
+        img_slice = None
+        print("Multimodal analysis did not get an image id. Will not use image...")
+    
+    print(f"Got {analysis_input} as the input. The type is {type(analysis_input)}.")
+
+    # ==== Processing logic ====
+    serialized_img_vtkjs = convert_itk_to_vtkjs_image(img_slice)
+    loop = asyncio.get_event_loop()
+
+    try:
+        # Route to appropriate inference function based on selected model
+        if selected_model == "medgemma":
+            model_response = await loop.run_in_executor(
+                process_pool, do_medgemma_inference, serialized_img_vtkjs, analysis_input
+            )
+        elif selected_model == "mrcxr1":
+            model_response = await loop.run_in_executor(
+                process_pool, do_mrcxr1_inference, serialized_img_vtkjs, analysis_input
+            )
+        else:
+            raise ValueError(f"Unsupported model: {selected_model}")
+
+        await backend_model_store.setAnalysisResult(patient_id, model_response)
+
+        print(f"Multimodal LLM analysis finished. Response:\n{model_response}")
+
+    except Exception as e:
+        raise RuntimeError(
+            f"Unexpected error during multimodal LLM inference: {e}"
+        ) from e
+
 @volview.expose("medgemmaAnalysis")
 async def medgemma_analysis(patient_id: str, img_id: str | None = None, active_layer: int | None = None) -> None:
-    """Runs text-based or multi-modal inference using the 27b multimodal MedGemma model.
-    If an img_id is specified, then the corresponding image and patient's vital signs records
-    are used by MedGemma to respond to the user's prompt.
-
+    """Legacy method - runs text-based or multi-modal inference using MedGemma model.
+    Kept for backward compatibility. New implementations should use multimodalLlmAnalysis.
+    
     Args:
         patient_id: The ID of the patient.
         img_id: The ID of the image to provide to MedGemma
         active_layer: The index of the 2D slice to process. If None, assumes 2D image.
     """
-    print(f"Started medgemma analysis...")
+    print(f"Started legacy medgemma analysis...")
 
     # Get the user prompt and vital signs data 
     medgemma_store = get_current_client_store("medgemma-store")
@@ -214,6 +281,22 @@ def do_medgemma_inference(serialized_img: Dict[str, Any], analysis_input: Dict )
     medgemma_response = run_volview_insight_medgemma_inference(input_data = analysis_input, itk_img = itk_img)
 
     return medgemma_response
+
+def do_mrcxr1_inference(serialized_img: Dict[str, Any], analysis_input: Dict ) -> Dict[str, Any]:
+    """Runs MRCxr1 inference
+
+    Args:
+        serialized_img: The serialized ITK image (vtkjs format).
+        analysis input: Dictionary containing the user query and parsed FHIR resource data
+
+    Returns:
+        The serialized text
+
+    """
+    itk_img = convert_vtkjs_to_itk_image(serialized_img)
+    mrcxr1_response = run_volview_insight_mrcxr1_inference(input_data = analysis_input, itk_img = itk_img)
+
+    return mrcxr1_response
 
 def do_lung_segmentation(serialized_img: Dict[str, Any]) -> Dict[str, Any]:
     """Performs lung segmentation on a serialized image using a pre-trained model.
