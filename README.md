@@ -99,31 +99,7 @@ volumes/
 │       └── ...
 └── model-cache/                 # AI models cached locally
 ```
-
-#### 3) Import your data (Optional)
-
-If you have medical data to work with, you can import it using these methods:
-
-**Option A: Auto-import from volumes**
-If you have data organized in the `volumes/` directory structure:
-```bash
-# Auto-import existing data to running servers
-./scripts/auto-import-data.sh
-```
-
-**Option B: Direct API uploads**
-Upload data directly through the application APIs:
-- **DICOM**: Use Orthanc's REST API at http://localhost:8042
-- **FHIR**: Use HAPI FHIR's REST API at http://localhost:3000
-
-**Data requirements:**
-- **DICOM files**: Must contain Patient ID in DICOM headers
-- **FHIR data**: Patient resources with matching Patient IDs
-- **Patient matching**: Both datasets should use the same Patient ID system for proper correlation
-
-> **Important**: The application only displays data where Patient IDs match between FHIR and DICOM/Orthanc. If a patient exists in FHIR but has no corresponding DICOM studies with the same Patient ID, or vice versa, that data will not be available in the application interface.
-
-#### 4) Start development environment
+#### 3) Start development environment
 ```bash
 # For development (Vite dev server + hot reloading)
 ./scripts/start-dev.sh
@@ -154,6 +130,29 @@ Upload data directly through the application APIs:
 - ✅ API proxying with CORS headers
 - ✅ Gzip compression and caching
 - ✅ Resource limits and restart policies
+
+#### 4) Import your data (Optional)
+
+If you have medical data to work with, you can import it using these methods:
+
+**Option A: Auto-import from volumes**
+If you have data organized in the `volumes/` directory structure:
+```bash
+# Auto-import existing data to running servers
+./scripts/auto-import-data.sh
+```
+
+**Option B: Direct API uploads**
+Upload data directly through the application APIs:
+- **DICOM**: Use Orthanc's REST API at http://localhost:8042
+- **FHIR**: Use HAPI FHIR's REST API at http://localhost:3000
+
+**Data requirements:**
+- **DICOM files**: Must contain Patient ID in DICOM headers
+- **FHIR data**: Patient resources with matching Patient IDs
+- **Patient matching**: Both datasets should use the same Patient ID system for proper correlation
+
+> **Important**: The application only displays data where Patient IDs match between FHIR and DICOM/Orthanc. If a patient exists in FHIR but has no corresponding DICOM studies with the same Patient ID, or vice versa, that data will not be available in the application interface.
 
 #### 5) Using the application
 
@@ -312,7 +311,18 @@ npm run dev
 
 > ⚠️ Must use **Node.js 23.10.0** for the proxy. Runs at port `5173`.
 
----
+### 8) Add example data 
+
+VolView Insight is meant to use images only alongside patient medical records, so any custom DICOM data that is uploaded needs to contain patient IDs that match the  IDs in the EHR system.  Upload data directly through the application APIs:
+- **DICOM**: Use Orthanc's REST API at http://localhost:8042
+- **FHIR**: Use HAPI FHIR's REST API at http://localhost:3000
+
+**Data requirements:**
+- **DICOM files**: Must contain Patient ID in DICOM headers
+- **FHIR data**: Patient resources with matching Patient IDs
+- **Patient matching**: Both datasets should use the same Patient ID system for proper correlation
+
+> **Important**: The application only displays data where Patient IDs match between FHIR and DICOM/Orthanc. If a patient exists in FHIR but has no corresponding DICOM studies with the same Patient ID, or vice versa, that data will not be available in the application interface.
 
 ---
 
