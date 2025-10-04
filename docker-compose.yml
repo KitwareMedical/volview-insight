@@ -39,6 +39,13 @@ services:
     volumes:
       - ./volview-insight/server:/app
       - model-cache:/app/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     depends_on:
       - orthanc
       - hapi-fhir

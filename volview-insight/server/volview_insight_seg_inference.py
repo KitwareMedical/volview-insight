@@ -10,6 +10,17 @@ from monai.transforms.utility.dictionary import ToTensord
 import numpy as np
 import torch
 
+# Import GPU optimization
+try:
+    from gpu_optimization import get_optimal_device, log_device_selection
+    GPU_OPTIMIZATION_AVAILABLE = True
+except ImportError:
+    GPU_OPTIMIZATION_AVAILABLE = False
+    def get_optimal_device(model_type):
+        return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    def log_device_selection(model_type, device, logger_func=print):
+        logger_func(f"Using device {device} for {model_type}")
+
 # Import debug utilities
 try:
     from debug_utils import timing_decorator, timing_context, conditional_log, MemoryMonitor
@@ -53,13 +64,24 @@ def run_volview_insight_seg_inference(itk_img: itk.image, model_checkpoint: str)
     with timing_context("SEG_MODEL_LOADING", level=1):
         input_size = [512,512]
         num_classes = 2
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        conditional_log(f"SEG_DEVICE: Using device {device}", level=2)
+        
+        # Use optimal device selection: CPU is 2.1x faster for segmentation
+        device = get_optimal_device("segmentation")
+        log_device_selection("segmentation", device, conditional_log)
+        conditional_log(f"SEG_DEVICE: Using optimal device {device}", level=2)
         
         memory_monitor.log_memory_usage("SEG_PRE_MODEL_LOAD", level=2)
-        model = NetInference.load_from_checkpoint(model_checkpoint, input_size=input_size, num_classes=num_classes, strict=False, map_location=device)
+        # Load on CPU first to avoid CUDA subprocess issues, then move to target device
+        model = NetInference.load_from_checkpoint(
+            model_checkpoint, 
+            input_size=input_size, 
+            num_classes=num_classes, 
+            strict=False, 
+            map_location='cpu'  # Always load on CPU first for subprocess compatibility
+        )
+        model = model.to(device)  # Move to optimal device
         model.eval() # Evaluation mode
-        conditional_log("SEG_MODEL: Model loaded and set to evaluation mode", level=2)
+        conditional_log(f"SEG_MODEL: Model loaded on CPU and moved to {device}, set to evaluation mode", level=2)
         memory_monitor.log_memory_usage("SEG_POST_MODEL_LOAD", level=2)
 
     assert len(input_img.shape) == 2, f"Expected input image of dimension 2, got: {len(input_img.shape)}"
@@ -81,12 +103,9 @@ def run_volview_insight_seg_inference(itk_img: itk.image, model_checkpoint: str)
 
     # Run inference
     with timing_context("SEG_MODEL_INFERENCE", level=1):
-        if torch.cuda.is_available():
-            transform_img = transform_dict["image"][None].cuda() # Add in batch dimension
-            conditional_log("SEG_INFERENCE: Using CUDA for inference", level=2)
-        else:
-            transform_img = transform_dict["image"][None].cpu()
-            conditional_log("SEG_INFERENCE: Using CPU for inference", level=2)
+        # Move input to the same optimal device as model
+        transform_img = transform_dict["image"][None].to(device)  # Add batch dimension and move to optimal device
+        conditional_log(f"SEG_INFERENCE: Using optimal device {device} for inference", level=2)
         
         memory_monitor.log_memory_usage("SEG_PRE_INFERENCE", level=2)
         pred = model(transform_img)

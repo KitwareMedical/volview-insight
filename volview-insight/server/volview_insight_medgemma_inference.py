@@ -6,6 +6,17 @@ import numpy as np
 import os
 from huggingface_hub import login
 
+# Import GPU optimization
+try:
+    from gpu_optimization import get_optimal_device, log_device_selection
+    GPU_OPTIMIZATION_AVAILABLE = True
+except ImportError:
+    GPU_OPTIMIZATION_AVAILABLE = False
+    def get_optimal_device(model_type):
+        return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    def log_device_selection(model_type, device, logger_func=print):
+        logger_func(f"Using device {device} for {model_type}")
+
 # Import debug utilities
 try:
     from debug_utils import timing_decorator, timing_context, conditional_log, MemoryMonitor
@@ -188,11 +199,16 @@ def run_volview_insight_medgemma_inference(input_data: dict, itk_img: itk.image 
             print(f"Using cache directory: {cache_dir}")
             conditional_log(f"MEDGEMMA_CACHE: Using cache directory {cache_dir}", level=2)
         
+        # Log optimal device selection for MedGemma (large language model)
+        optimal_device = get_optimal_device("medgemma")
+        log_device_selection("medgemma", optimal_device, conditional_log)
+        
         memory_monitor.log_memory_usage("MEDGEMMA_PRE_LOAD", level=2)
         
         # Load model and processor with caching
+        # Use auto device mapping for optimal GPU utilization (4B+ param model benefits from GPU)
         model_kwargs = {
-            "device_map": "auto",
+            "device_map": "auto",  # Automatically places layers on optimal devices
             "torch_dtype": torch.bfloat16,
         }
         processor_kwargs = {}

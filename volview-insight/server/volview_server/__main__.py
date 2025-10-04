@@ -4,8 +4,13 @@ import os
 import argparse
 import importlib
 import logging
+import multiprocessing
 
 from aiohttp import web
+
+# Fix CUDA multiprocessing issue - must be set before any CUDA operations
+if __name__ == '__main__':
+    multiprocessing.set_start_method('spawn', force=True)
 
 # Configure performance debugging environment variables
 def configure_debug_environment():

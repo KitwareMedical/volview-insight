@@ -9,6 +9,17 @@ from typing import Dict, Any
 from debug_utils import timing_decorator, timing_context, conditional_log, memory_monitor, format_time
 from performance_middleware import mrcxr1_performance_wrapper, log_image_info, log_model_info
 
+# Import GPU optimization
+try:
+    from gpu_optimization import get_optimal_device, log_device_selection
+    GPU_OPTIMIZATION_AVAILABLE = True
+except ImportError:
+    GPU_OPTIMIZATION_AVAILABLE = False
+    def get_optimal_device(model_type):
+        return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    def log_device_selection(model_type, device, logger_func=print):
+        logger_func(f"Using device {device} for {model_type}")
+
 @mrcxr1_performance_wrapper
 @timing_decorator("MRCXR1_SIMPLIFIED_INFERENCE", level=1)
 def run_volview_insight_mrcxr1_simplified_inference(input_data: Dict[str, Any], itk_img: itk.Image) -> str:
@@ -37,10 +48,14 @@ def run_volview_insight_mrcxr1_simplified_inference(input_data: Dict[str, Any], 
     conditional_log(f"MRCXR1_MODEL_PATH: {model_path}", level=2)
 
     with timing_context("MRCXR1_MODEL_LOADING", level=1):
+        # Log optimal device selection for MRCxr1 (large language model)
+        optimal_device = get_optimal_device("mrcxr1")
+        log_device_selection("mrcxr1", optimal_device, conditional_log)
+        
         model = AutoModelForImageTextToText.from_pretrained(
             model_path,
             torch_dtype=torch.float16,
-            device_map="auto",
+            device_map="auto",  # Automatically places 3.7B param model on optimal devices (GPU)
             local_files_only=True,
         ).eval()
         memory_monitor.log_memory_usage("MRCXR1_MODEL_LOADED", level=2)
