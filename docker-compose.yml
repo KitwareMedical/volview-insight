@@ -33,6 +33,9 @@ services:
       - HF_TOKEN=${HF_TOKEN}
       - PYTHONPATH=/app
       - PYTHON_ENV=production
+      - VOLVIEW_DEBUG_LEVEL=${VOLVIEW_DEBUG_LEVEL}
+      - VOLVIEW_MEMORY_MONITORING=${VOLVIEW_MEMORY_MONITORING}
+      - VOLVIEW_TIMING_PRECISION=${VOLVIEW_TIMING_PRECISION}
     volumes:
       - ./volview-insight/server:/app
       - model-cache:/app/models

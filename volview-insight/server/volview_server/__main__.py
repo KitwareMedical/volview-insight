@@ -7,6 +7,29 @@ import logging
 
 from aiohttp import web
 
+# Configure performance debugging environment variables
+def configure_debug_environment():
+    """Configure environment variables for performance debugging."""
+    # Set default debug level if not already set
+    if not os.environ.get('VOLVIEW_DEBUG_LEVEL'):
+        os.environ['VOLVIEW_DEBUG_LEVEL'] = '1'
+    
+    # Set memory monitoring defaults
+    if not os.environ.get('VOLVIEW_MEMORY_MONITORING'):
+        os.environ['VOLVIEW_MEMORY_MONITORING'] = 'true'
+    
+    # Set timing precision defaults
+    if not os.environ.get('VOLVIEW_TIMING_PRECISION'):
+        os.environ['VOLVIEW_TIMING_PRECISION'] = '4'
+    
+    print(f"Debug Configuration:")
+    print(f"  VOLVIEW_DEBUG_LEVEL: {os.environ.get('VOLVIEW_DEBUG_LEVEL')}")
+    print(f"  VOLVIEW_MEMORY_MONITORING: {os.environ.get('VOLVIEW_MEMORY_MONITORING')}")
+    print(f"  VOLVIEW_TIMING_PRECISION: {os.environ.get('VOLVIEW_TIMING_PRECISION')}")
+
+# Initialize debug environment
+configure_debug_environment()
+
 from volview_server.volview_api import VolViewApi
 from volview_server.rpc_server import RpcServer
 from volview_server.chunking import CHUNK_SIZE

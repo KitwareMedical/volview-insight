@@ -8,6 +8,23 @@ import itk
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
+# Conditional debug imports to avoid subprocess issues
+try:
+    from debug_utils import RequestTracker, conditional_log, timing_context
+    DEBUG_AVAILABLE = True
+except ImportError:
+    DEBUG_AVAILABLE = False
+    # Dummy functions for when debug utils aren't available
+    class RequestTracker:
+        @staticmethod
+        def generate_correlation_id(): return "dummy"
+        @staticmethod 
+        def set_correlation_id(cid): pass
+    def conditional_log(msg, level=1): pass
+    def timing_context(name, level=1):
+        from contextlib import nullcontext
+        return nullcontext()
+
 from volview_insight_seg_inference import run_volview_insight_seg_inference
 from volview_insight_medgemma_inference import run_volview_insight_medgemma_inference
 from volview_insight_mrcxr1_simplified import run_volview_insight_mrcxr1_simplified_inference
@@ -293,8 +310,27 @@ def do_mrcxr1_inference(serialized_img: Dict[str, Any], analysis_input: Dict ) -
         The serialized text
 
     """
-    itk_img = convert_vtkjs_to_itk_image(serialized_img)
-    mrcxr1_response = run_volview_insight_mrcxr1_simplified_inference(input_data = analysis_input, itk_img = itk_img)
+    # Generate request correlation ID for this inference request
+    correlation_id = RequestTracker.generate_correlation_id()
+    RequestTracker.set_correlation_id(correlation_id)
+    
+    with timing_context("DO_MRCXR1_INFERENCE_TOTAL", level=0):
+        conditional_log(f"MRCXR1_REQUEST: Starting inference with correlation_id={correlation_id}", level=1)
+        
+        # Estimate input data size for performance tracking
+        img_size = len(str(serialized_img)) if serialized_img else 0
+        input_size = len(str(analysis_input)) if analysis_input else 0
+        conditional_log(f"MRCXR1_REQUEST_SIZE: Image={img_size} bytes, Input={input_size} bytes", level=2)
+        
+        with timing_context("MRCXR1_IMAGE_CONVERSION", level=1):
+            itk_img = convert_vtkjs_to_itk_image(serialized_img)
+            conditional_log("MRCXR1_CONVERSION: VTK.js to ITK conversion completed", level=2)
+        
+        # The main inference function is already instrumented with timing
+        mrcxr1_response = run_volview_insight_mrcxr1_simplified_inference(input_data = analysis_input, itk_img = itk_img)
+        
+        response_size = len(str(mrcxr1_response)) if mrcxr1_response else 0
+        conditional_log(f"MRCXR1_RESPONSE: Completed with response size={response_size} bytes", level=1)
 
     return mrcxr1_response
 
