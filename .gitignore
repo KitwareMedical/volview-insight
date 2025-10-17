@@ -10,6 +10,7 @@ volview-insight/server/segmentLungsModel-v1.0.ckpt
 
 # Docker volumes
 volumes/
+volumes-db/
 
 # Logs
 *.log

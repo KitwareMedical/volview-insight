@@ -54,9 +54,6 @@ services:
       - ORTHANC__REMOTE_ACCESS_ALLOWED=true
       - ORTHANC__DICOM_WEB_ENABLED=true
       - ORTHANC__DICOM_WEB_ROOT=/dicom-web/
-      - ORTHANC__STORAGE_DIRECTORY=/var/lib/orthanc/db
-      - ORTHANC__DATABASE_DIRECTORY=/var/lib/orthanc/db
-      - ORTHANC__INDEX_DIRECTORY=/var/lib/orthanc/db
       - ORTHANC__HTTP_PORT=8042
       - ORTHANC__DICOM_PORT=4242
     volumes:

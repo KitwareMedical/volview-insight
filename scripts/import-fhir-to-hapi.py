@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Script to import FHIR resources from volumes/hapi-fhir-data into HAPI FHIR server.
-This script reads the FHIR JSON files that were saved by the notebook and 
-imports them into HAPI FHIR via its REST API.
+Script to import FHIR resources from volumes/hapi-fhir-data (raw source) into HAPI FHIR server.
+This script reads the raw FHIR JSON files and imports them into HAPI FHIR database
+(stored in volumes-db/hapi-fhir-data) via its REST API.
 """
 
 import os
@@ -13,7 +13,7 @@ import time
 
 # Configuration
 HAPI_FHIR_URL = "http://localhost:3000/hapi-fhir-jpaserver/fhir"
-VOLUME_PATH = Path("./volumes/hapi-fhir-data")
+SOURCE_PATH = Path("./volumes/hapi-fhir-data")  # Raw FHIR files (source)
 
 def import_fhir_resource(resource_json):
     """Import a single FHIR resource to HAPI FHIR."""
@@ -44,17 +44,16 @@ def import_fhir_resource(resource_json):
         return False, str(e)
 
 def main():
-    print("🔄 Importing FHIR resources to HAPI FHIR...")
-    print(f"📁 Volume path: {VOLUME_PATH}")
+    print("🔄 Importing FHIR resources to HAPI FHIR server...")
+    print(f"📁 Source path: {SOURCE_PATH}")
     print(f"🌐 HAPI FHIR URL: {HAPI_FHIR_URL}")
     
-    if not VOLUME_PATH.exists():
-        print(f"❌ Volume directory not found: {VOLUME_PATH}")
-        print("Please run the notebook first to create the FHIR files.")
+    if not SOURCE_PATH.exists():
+        print(f"❌ Source path not found: {SOURCE_PATH}")
         return
     
     # Import patients first
-    patients_file = VOLUME_PATH / "patients.json"
+    patients_file = SOURCE_PATH / "patients.json"
     if patients_file.exists():
         print(f"📤 Importing patients from {patients_file.name}")
         
@@ -81,7 +80,7 @@ def main():
         print(f"👥 Patients: {successful_patients} successful, {failed_patients} failed")
     
     # Import other resources
-    resource_dirs = [d for d in VOLUME_PATH.iterdir() if d.is_dir()]
+    resource_dirs = [d for d in SOURCE_PATH.iterdir() if d.is_dir()]
     
     total_resources_saved = 0
     total_resources_failed = 0

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Script to import DICOM files from volumes/orthanc-data into Orthanc server.
-This script reads the DICOM files that were copied by the notebook and 
-imports them into Orthanc via its REST API.
+Script to import DICOM files from volumes/orthanc-data (raw source) into Orthanc server.
+This script reads the raw DICOM files and imports them into Orthanc database 
+(stored in volumes-db/orthanc-data) via its REST API.
 """
 
 import os
@@ -13,8 +13,8 @@ import time
 
 # Configuration
 ORTHANC_URL = "http://localhost:8042"
-VOLUME_PATH = Path("./volumes/orthanc-data")
-METADATA_FILE = VOLUME_PATH / "dicom_metadata.json"
+SOURCE_PATH = Path("./volumes/orthanc-data")  # Raw DICOM files (source)
+METADATA_FILE = SOURCE_PATH / "dicom_metadata.json"
 
 def import_dicom_file(file_path):
     """Import a single DICOM file to Orthanc."""
@@ -35,7 +35,7 @@ def import_dicom_file(file_path):
 
 def main():
     print("🔄 Importing DICOM files to Orthanc...")
-    print(f"📁 Volume path: {VOLUME_PATH}")
+    print(f"📁 Source path: {SOURCE_PATH}")
     print(f"🌐 Orthanc URL: {ORTHANC_URL}")
     
     # Check if metadata file exists
@@ -50,31 +50,37 @@ def main():
     
     print(f"📊 Found {len(dicom_files)} DICOM files to import")
     
-    # Import files
+    # Import each DICOM file
+    total_files = len(dicom_files)
     successful_imports = 0
     failed_imports = 0
     
-    for i, file_info in enumerate(dicom_files):
-        file_path = Path(file_info['dest_path'])
+    for i, dicom_info in enumerate(dicom_files, 1):
+        # Handle both 'filename' and 'dest_path' metadata formats
+        if 'filename' in dicom_info:
+            file_path = SOURCE_PATH / dicom_info['filename']
+        elif 'dest_path' in dicom_info:
+            file_path = Path(dicom_info['dest_path'])
+        else:
+            print(f"❌ No filename or dest_path in metadata entry: {dicom_info}")
+            failed_imports += 1
+            continue
+            
+        print(f"📤 [{i}/{total_files}] Importing: {file_path.name}")
         
         if not file_path.exists():
-            print(f"⚠️  File not found: {file_path}")
+            print(f"❌ File not found: {file_path}")
             failed_imports += 1
             continue
         
-        print(f"📤 Importing {i+1}/{len(dicom_files)}: {file_path.name}")
-        
+        # Import the DICOM file
         success, result = import_dicom_file(file_path)
-        
         if success:
-            print(f"   ✅ Success: {result.get('ID', 'Unknown ID')}")
             successful_imports += 1
+            print(f"✅ Imported successfully")
         else:
-            print(f"   ❌ Failed: {result}")
             failed_imports += 1
-        
-        # Small delay to avoid overwhelming Orthanc
-        time.sleep(0.1)
+            print(f"❌ Import failed: {result}")
     
     print(f"\n🎉 Import complete!")
     print(f"✅ Successful imports: {successful_imports}")

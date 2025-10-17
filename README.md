@@ -66,7 +66,7 @@ cat ./core-volview-patches/VOLVIEW_BACKEND.patch | git -C core/VolView apply
 
 #### 2) Setup volumes and environment
 ```bash
-# Setup data volumes (creates volumes/ directory structure)
+# Setup data volumes (creates both volumes/ and volumes-db/ structures)
 ./scripts/setup-volumes.sh
 
 # Create environment file from template
@@ -77,51 +77,104 @@ nano .env
 # Add your Hugging Face token: HF_TOKEN=hf_your_token_here
 ```
 
-**Required volumes structure:**
-- `volumes/orthanc-data/` - DICOM image storage organized by patient directories
-- `volumes/hapi-fhir-data/` - FHIR healthcare data with individual patient files
-- `volumes/model-cache/` - AI model cache for inference
+**Understanding the Volume Structure:**
+- **`volumes/`** - Your source data directory (DICOM/FHIR files to import)  
+- **`volumes-db/`** - Docker persistent storage (actual database files)
 
-**Expected data organization:**
+**Volume Structure Overview:**
+VolView Insight uses two separate volume directories:
+
+- **`volumes/`** - **Source data** (raw files you want to import)
+- **`volumes-db/`** - **Docker persistent volumes** (database storage managed by Docker)
+
+**Directory Organization:**
 ```
-volumes/
-├── orthanc-data/
-│   ├── patient_[ID]/             # Patient directories organized by Patient ID
-│   │   ├── study1.dcm           # DICOM files for this patient
+volumes/                        # SOURCE DATA (your raw files)
+├── orthanc-data/               # Raw DICOM files to be imported
+│   ├── patient_[ID]/           # Patient directories by Patient ID
+│   │   ├── study1.dcm         # DICOM files for this patient
 │   │   └── study2.dcm
-│   └── dicom_metadata.json      # Import metadata tracking (optional)
-├── hapi-fhir-data/
-│   ├── patient_*.json           # Individual FHIR patient resources
-│   ├── patients.json            # Combined patient list (optional)
-│   └── fhir/                    # Additional FHIR resources (optional)
-│       ├── condition/
-│       ├── observation/
-│       └── ...
-└── model-cache/                 # AI models cached locally
+│   └── dicom_metadata.json    # Import metadata (optional)
+└── hapi-fhir-data/            # Raw FHIR resources to be imported
+    ├── patient_*.json         # Individual FHIR patient resources
+    ├── patients.json          # Combined patient list (optional)
+    └── [resource_type]/       # Additional FHIR resources by type
+        ├── condition/
+        ├── observation/
+        └── ...
+
+volumes-db/                     # DOCKER VOLUMES (persistent databases)
+├── orthanc-data/              # Orthanc database (auto-managed)
+├── hapi-fhir-data/           # HAPI FHIR database (auto-managed)
+└── model-cache/              # AI model cache (persistent)
+    ├── segmentLungsModel-v1.0.ckpt
+    └── medgemma/            # Downloaded on first use
 ```
 
-#### 3) Import your data (Optional)
+#### 3) Add your medical data
 
-If you have medical data to work with, you can import it using these methods:
+**For new users cloning from GitHub:**
 
-**Option A: Auto-import from volumes**
-If you have data organized in the `volumes/` directory structure:
-```bash
-# Auto-import existing data to running servers
-./scripts/auto-import-data.sh
-```
+1. **Prepare your source data** in the `volumes/` directory structure:
+   ```bash
+   # Place raw DICOM files in volumes/orthanc-data/
+   mkdir -p volumes/orthanc-data/patient_[ID]/
+   # Copy your .dcm files here
+   
+   # Place raw FHIR resources in volumes/hapi-fhir-data/
+   mkdir -p volumes/hapi-fhir-data/
+   # Copy your .json FHIR resources here
+   ```
 
-**Option B: Direct API uploads**
-Upload data directly through the application APIs:
+2. **Start the services** (creates empty databases in `volumes-db/`):
+   ```bash
+   ./scripts/start-dev.sh
+   ```
+
+3. **Import your data** from source to databases:
+   ```bash
+   # Auto-import from volumes/ to running servers
+   ./scripts/auto-import-data.sh
+   
+   # Or import individually:
+   python3 ./scripts/import-dicom-to-orthanc.py
+   python3 ./scripts/import-fhir-to-hapi.py
+   ```
+
+**Alternative: Direct API uploads**
+You can also upload data directly through REST APIs:
 - **DICOM**: Use Orthanc's REST API at http://localhost:8042
 - **FHIR**: Use HAPI FHIR's REST API at http://localhost:3000
 
-**Data requirements:**
+**Data Requirements:**
 - **DICOM files**: Must contain Patient ID in DICOM headers
-- **FHIR data**: Patient resources with matching Patient IDs
+- **FHIR data**: Patient resources with matching Patient IDs  
 - **Patient matching**: Both datasets should use the same Patient ID system for proper correlation
 
 > **Important**: The application only displays data where Patient IDs match between FHIR and DICOM/Orthanc. If a patient exists in FHIR but has no corresponding DICOM studies with the same Patient ID, or vice versa, that data will not be available in the application interface.
+
+**Volume Persistence:**
+- ✅ **`volumes-db/`** data persists across container restarts
+- ✅ AI model cache (`volumes-db/model-cache/`) persists downloads  
+- ⚠️ **`volumes/`** is your source data (not modified by the application)
+- 🗑️ Use `docker-compose down -v` to clear all databases
+
+**🔄 Data Persistence After Initial Setup:**
+Once you've completed the initial setup and data import, **future container restarts are simple and require NO re-importing**:
+
+```bash
+# After initial setup, future restarts are this simple:
+docker-compose down    # Stop all services
+docker-compose up -d   # Start all services
+
+# Your data will be immediately available:
+# ✅ All DICOM studies (preserved in Orthanc database)
+# ✅ All FHIR resources (preserved in HAPI FHIR database)  
+# ✅ All AI models (preserved in model cache)
+# ✅ No re-import needed!
+```
+
+**Important**: The first time you set up the system, you need to import data once. After that, all data persists automatically across container restarts, system reboots, and Docker updates.
 
 #### 4) Start development environment
 ```bash
@@ -148,12 +201,14 @@ Upload data directly through the application APIs:
 - ✅ All services orchestrated automatically
 - ✅ CORS proxy for DICOM Web API access
 - ✅ Environment variables pre-configured
+- ✅ Persistent database volumes in `volumes-db/`
 
-**Production Features:**
+**Production Features:**  
 - ✅ nginx serving optimized static files
 - ✅ API proxying with CORS headers
 - ✅ Gzip compression and caching
 - ✅ Resource limits and restart policies
+- ✅ Persistent data storage across container updates
 
 #### 5) Using the application
 
@@ -179,8 +234,9 @@ Once all services are running:
 - Ensure Patient IDs exactly match between FHIR and DICOM data (case-sensitive)
 - Check that both FHIR patients and DICOM studies were imported successfully
 - Verify the Patient ID field exists in DICOM headers and FHIR resources
-- Run `auto-import-data.sh` to verify import completed successfully
+- Run `./scripts/auto-import-data.sh` to verify import completed successfully
 - Verify services are running: `docker-compose ps`
+- Check if data exists in source directories: `ls volumes/orthanc-data/` and `ls volumes/hapi-fhir-data/`
 
 **FHIR connection errors**
 - Ensure HAPI FHIR server is accessible at http://localhost:3000
@@ -196,6 +252,13 @@ Once all services are running:
 - Development mode uses CORS proxy at http://localhost:5173
 - Ensure Orthanc proxy service is running
 - Check browser developer console for detailed errors
+
+**Docker volume management**
+- Data persists in `volumes-db/` across container restarts
+- To clear all databases: `docker-compose down -v`
+- To backup data: Copy `volumes-db/` directory
+- To restore data: Replace `volumes-db/` directory before starting services
+- AI models download once to `volumes-db/model-cache/` and persist
 
 ---
 

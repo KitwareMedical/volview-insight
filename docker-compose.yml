@@ -53,9 +53,6 @@ services:
       - ORTHANC__AUTHENTICATION_ENABLED=false
       - ORTHANC__REMOTE_ACCESS_ALLOWED=true
       - DICOM_WEB_PLUGIN_ENABLED=true
-      - ORTHANC__STORAGE_DIRECTORY=/var/lib/orthanc/db
-      - ORTHANC__DATABASE_DIRECTORY=/var/lib/orthanc/db
-      - ORTHANC__INDEX_DIRECTORY=/var/lib/orthanc/db
       - ORTHANC__HTTP_PORT=8042
       - ORTHANC__DICOM_PORT=4242
     volumes:
@@ -70,7 +67,7 @@ services:
     ports:
       - "3000:8080"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:h2:mem:fhir
+      - SPRING_DATASOURCE_URL=jdbc:h2:file:/data/fhir
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=
     volumes:
@@ -108,18 +105,18 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: ./volumes/orthanc-data
+      device: ./volumes-db/orthanc-data
   
   hapi-fhir-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ./volumes/hapi-fhir-data
+      device: ./volumes-db/hapi-fhir-data
   
   model-cache:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ./volumes/model-cache
+      device: ./volumes-db/model-cache
