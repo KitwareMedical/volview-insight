@@ -74,7 +74,8 @@ cp env.example .env
 
 # Edit .env file and add your HF_TOKEN for AI models
 nano .env
-# Add your Hugging Face token for medgemma: HF_TOKEN=hf_your_token_here
+# Add your Hugging Face token needed for gated public model like medgemma:
+HF_TOKEN=hf_your_token_here
 ```
 
 **Understanding the Volume Structure:**
@@ -118,12 +119,8 @@ volumes-db/                     # DOCKER VOLUMES (persistent databases)
 1. **Prepare your source data** in the `volumes/` directory structure:
    ```bash
    # Place raw DICOM files in volumes/orthanc-data/
-   mkdir -p volumes/orthanc-data/patient_[ID]/
-   # Copy your .dcm files here
-   
    # Place raw FHIR resources in volumes/hapi-fhir-data/
-   mkdir -p volumes/hapi-fhir-data/
-   # Copy your .json FHIR resources here
+
    ```
 
 2. **Start the services** (creates empty databases in `volumes-db/`):
