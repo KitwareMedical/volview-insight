@@ -6,7 +6,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/dicom-web": {
-        target: process.env.ORTHANC_URL || "http://localhost:8042",
+        target: process.env.ORTHANC_URL || "http://orthanc:8042",
         changeOrigin: true,
         // auth: "orthanc:orthanc",
         configure: (proxy) => {
