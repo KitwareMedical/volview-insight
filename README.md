@@ -42,26 +42,14 @@ models** in settings that mirror clinical reality.
 
 ## 🚀 Quick Start
 
-### 0) Prerequisites
+### Prerequisites
 
-**For Docker Setup (Recommended):**
 - **Docker** `20.10.0` or later
 - **Docker Compose** v2.0 or later (included with Docker Desktop)
 
-**For Manual Setup:**
-=======
-Install the following:
-
-- **Node.js** (use `nvm` to manage versions)
-- **Python** == `3.10.11`
-- **Poetry** `2.1.2`
-- **Docker** `20.10.0` or later
-- A **DICOMWeb** server (e.g., Orthanc)
-- A **FHIR** server (e.g., HAPI on FHIR)
-
 ---
 
-### 🐳 **Option A: Docker Orchestration (Recommended)**
+### 🐳 **Docker Setup**
 
 The easiest way to get started is using our Docker orchestration setup:
 
@@ -86,7 +74,7 @@ cp env.example .env
 
 # Edit .env file and add your HF_TOKEN for AI models
 nano .env
-# Add your Hugging Face token: HF_TOKEN=hf_your_token_here
+# Add your Hugging Face token for medgemma: HF_TOKEN=hf_your_token_here
 ```
 
 **Understanding the Volume Structure:**
@@ -304,116 +292,7 @@ Once all services are running:
 - To restore data: Replace `volumes-db/` directory before starting services
 - AI models download once to `volumes-db/model-cache/` and persist
 
----
 
-### ⚙️ **Option B: Manual Setup**
-
-If you prefer to set up services manually:
-
----
-
-### 1) Clone the repository
-
-```bash
-git clone https://github.com/KitwareMedical/volview-insight.git
-cd volview-insight
-git submodule update --init
-```
-
----
-
-### 2) Apply VolView patches (if applicable)
-
-```bash
-# macOS only
-cat ./core-volview-patches/MACOS_COMPATIBILITY.patch | git -C core/VolView apply
-```
-
----
-
-### 3) Setup a DICOM server
-
-You can use **any** DICOMWeb server. Below is an example setup for running the
-Orthanc Docker container.
-
-```bash
-# Run Orthanc with DICOMWeb plugin and NO authentication (dev only)
-docker run --rm -p 8042:8042 -p 4242:4242 \
-  -e ORTHANC__AUTHENTICATION_ENABLED=false \
-  -e DICOM_WEB_PLUGIN_ENABLED=true \
-  orthancteam/orthanc
-```
-
-Verify at: [http://localhost:8042/](http://localhost:8042/)
-
----
-
-### 4) Setup a FHIR endpoint
-
-You can use **any** FHIR R4 endpoint. Example with HAPI FHIR image:
-
-```bash
-docker pull smartonfhir/hapi-5:r4-empty
-docker run -dp 3000:8080 smartonfhir/hapi-5:r4-empty
-```
-
-Verify at: [http://localhost:3000/hapi-fhir-jpaserver/fhir/Patient](http://localhost:3000/hapi-fhir-jpaserver/fhir/Patient)
-
----
-
-### 5) Setup the Python backend
-
-The Python backend executes multimodal pipelines. You can extend it with your own.
-
-```bash
-cd volview-insight/server
-poetry env use /path/to/bin/python3.10
-poetry install
-poetry run python -m volview_server -P 4014 -H 0.0.0.0 volview_insight_methods.py
-```
-
-> If you encounter issues, remove `-P 4014`.
-
-#### Example integrations
-
-- **MedGemma**: This is a gated public model from Hugging Face (requires account + access token and authentication via huggingface-cli login or environment variable HUGGINGFACE_HUB_TOKEN) 
-- **A Lung Segmentation MONAI model**: To use the lung segmentation model, the following checkpoint file needs to be installed in the volview-insight/server subfolder
-
-```bash
-cd volview-insight/server
-curl https://data.kitware.com/api/v1/file/65bd8c2f03c3115909f73dd7/download --output segmentLungsModel-v1.0.ckpt
-```
-
----
-
-### 6) Orthanc proxy (for CORS testing only)
-
-```bash
-cd volview-insight/orthanc-proxy
-nvm use 23.10.0
-npm install
-npm run dev
-```
-
-> ⚠️ Must use **Node.js 23.10.0** for the proxy. Runs at port `5173`.
-
----
-
-### 7) Start the VolView Insight web app
-
-> Make sure you have access to a global python environment running Python
-> 3.10.11. You will have problems with `npm install --force` using some later
-> versions.
-
-```bash
-nvm use 18.17.1
-npm install --force
-npm run setup-project
-npm run build
-npm run preview
-```
-
-Now open: **http://localhost:4173/**
 
 ---
 
