@@ -176,8 +176,14 @@ Once you've completed the initial setup and data import, **future container rest
 
 ```bash
 # After initial setup, future restarts are this simple:
-docker-compose down    # Stop all services
-docker-compose up -d   # Start all services
+
+# For Development:
+./scripts/stop.sh      # Stop all services
+./scripts/start-dev.sh # Start all services in development mode
+
+# For Production:  
+./scripts/stop.sh       # Stop all services
+./scripts/start-prod.sh # Start all services in production mode
 
 # Your data will be immediately available:
 # ✅ All DICOM studies (preserved in Orthanc database)
@@ -189,15 +195,41 @@ docker-compose up -d   # Start all services
 **Important**: The first time you set up the system, you need to import data once. After that, all data persists automatically across container restarts, system reboots, and Docker updates.
 
 #### 4) Start development environment
-```bash
-# For development (Vite dev server + hot reloading)
-./scripts/start-dev.sh
 
-# For production (nginx + optimized build)
-./scripts/start-prod.sh
+**🔧 For Development (Recommended):**
+```bash
+# Use the development script (handles proper configuration automatically)
+./scripts/start-dev.sh
 
 # To stop all services
 ./scripts/stop.sh
+```
+
+**⚠️ Important - Development vs Production:**
+```bash
+# ✅ CORRECT for development (uses docker-compose.dev.yml overrides):
+./scripts/start-dev.sh
+
+# ❌ AVOID this in development (missing dev configuration):
+docker-compose up -d
+
+# ✅ If you need manual control, use explicit dev configuration:
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+```
+
+**🏗️ For Production:**
+```bash
+# For production (nginx + optimized build)
+./scripts/start-prod.sh
+```
+
+**🔄 Development Restarts:**
+```bash
+# When you make code changes, restart specific services:
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml restart backend volview-insight-web
+
+# Or restart all services (preserves data):
+./scripts/stop.sh && ./scripts/start-dev.sh
 ```
 
 **Access Points:**
