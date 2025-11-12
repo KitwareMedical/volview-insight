@@ -1,8 +1,8 @@
-# Production Dockerfile - Multi-stage build with nginx
-FROM node:18.17.1-alpine AS base
+# Development Dockerfile - Vite dev server only
+FROM node:18.17.1-alpine
 WORKDIR /app
 
-# Install build dependencies
+# Install build dependencies for native modules and git
 RUN apk add --no-cache \
     python3 \
     make \
@@ -18,38 +18,19 @@ RUN apk add --no-cache \
     freetype-dev \
     git
 
-# Copy package files for dependency installation
-COPY package*.json ./
-COPY volview-insight/package*.json ./volview-insight/
-COPY core/VolView/package*.json ./core/VolView/
-
-# Install dependencies
-RUN npm install --force
-RUN cd volview-insight && npm install  
-RUN cd core/VolView && npm install
-
-# Build stage
-FROM base AS build
-WORKDIR /app
-
-# Copy all source code
+# Copy all source code first
 COPY . .
 
-# Setup project and build for production
+# Install dependencies in correct order
+RUN npm install --force
+RUN cd volview-insight && npm install --force
+RUN cd core/VolView && npm install --force
+
+# Run setup (but don't build - we'll use dev server)
 RUN npm run setup-project
-RUN npm run build
 
-# Production stage with nginx
-FROM nginx:alpine AS production
+# Expose Vite dev server port
+EXPOSE 8080
 
-# Copy built static files
-COPY --from=build /app/dist /usr/share/nginx/html
-
-# Copy custom nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
-
-# Expose nginx port
-EXPOSE 80
-
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start Vite dev server with hot reloading
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8080"]

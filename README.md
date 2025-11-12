@@ -134,7 +134,7 @@ volumes-db/                     # DOCKER VOLUMES (persistent databases)
 
 2. **Start the services** (creates empty databases in `volumes-db/`):
    ```bash
-   ./scripts/start-dev.sh
+   ./scripts/start.sh
    ```
 
 3. **Import your data** from source to databases:
@@ -170,14 +170,8 @@ Once you've completed the initial setup and data import, **future container rest
 
 ```bash
 # After initial setup, future restarts are this simple:
-
-# For Development:
-./scripts/stop.sh      # Stop all services
-./scripts/start-dev.sh # Start all services in development mode
-
-# For Production:  
-./scripts/stop.sh       # Stop all services
-./scripts/start-prod.sh # Start all services in production mode
+./scripts/stop.sh   # Stop all services
+./scripts/start.sh  # Start all services
 
 # Your data will be immediately available:
 # ✅ All DICOM studies (preserved in Orthanc database)
@@ -188,42 +182,23 @@ Once you've completed the initial setup and data import, **future container rest
 
 **Important**: The first time you set up the system, you need to import data once. After that, all data persists automatically across container restarts, system reboots, and Docker updates.
 
-#### 4) Start development environment
+#### 4) Start the application
 
-**🔧 For Development (Recommended):**
 ```bash
-# Use the development script (handles proper configuration automatically)
-./scripts/start-dev.sh
+# Start all services
+./scripts/start.sh
 
 # To stop all services
 ./scripts/stop.sh
 ```
 
-**⚠️ Important - Development vs Production:**
-```bash
-# ✅ CORRECT for development (uses docker-compose.dev.yml overrides):
-./scripts/start-dev.sh
-
-# ❌ AVOID this in development (missing dev configuration):
-docker-compose up -d
-
-# ✅ If you need manual control, use explicit dev configuration:
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-```
-
-**🏗️ For Production:**
-```bash
-# For production (nginx + optimized build)
-./scripts/start-prod.sh
-```
-
-**🔄 Development Restarts:**
+**🔄 Service Restarts:**
 ```bash
 # When you make code changes, restart specific services:
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml restart backend volview-insight-web
+docker-compose restart backend volview-insight-web
 
 # Or restart all services (preserves data):
-./scripts/stop.sh && ./scripts/start-dev.sh
+./scripts/stop.sh && ./scripts/start.sh
 ```
 
 **Access Points:**
@@ -233,20 +208,13 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml restart backend v
 - **HAPI FHIR**: http://localhost:3000/hapi-fhir-jpaserver/ 
 - **Orthanc CORS Proxy**: http://localhost:5173
 
-**Development Features:**
+**Features:**
 - ✅ Hot reloading with Vite dev server
 - ✅ Live code updates with volume mounts  
 - ✅ All services orchestrated automatically
 - ✅ CORS proxy for DICOM Web API access
 - ✅ Environment variables pre-configured
 - ✅ Persistent database volumes in `volumes-db/`
-
-**Production Features:**  
-- ✅ nginx serving optimized static files
-- ✅ API proxying with CORS headers
-- ✅ Gzip compression and caching
-- ✅ Resource limits and restart policies
-- ✅ Persistent data storage across container updates
 
 #### 5) Using the application
 

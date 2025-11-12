@@ -2,8 +2,8 @@
 
 echo "🛑 Stopping VolView Insight services..."
 
-# Stop both dev and prod configurations
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.prod.yml down
+# Stop all services
+docker-compose down
 
 echo "✅ All services stopped!"
 echo ""

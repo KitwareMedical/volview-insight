@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Starting VolView Insight in development mode..."
+echo "🚀 Starting VolView Insight..."
 echo "   Frontend: Vite dev server with hot reloading"
 echo "   API calls: Direct to backend services"
 
@@ -31,24 +31,23 @@ echo ""
 
 # Start services
 echo "🐳 Starting Docker services..."
-echo "   Using: docker-compose.yml + docker-compose.dev.yml"
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+docker-compose up --build
 
 # In development mode, services run in foreground with logs
 # The script will continue running and showing logs
 # Press Ctrl+C to stop all services
 
 echo ""
-echo "🎉 VolView Insight development server started!"
+echo "🎉 VolView Insight started!"
 echo ""
-echo "🌐 Development access points:"
+echo "🌐 Access points:"
 echo "   - Frontend (Vite dev): http://localhost:8080"
 echo "   - Backend API: http://localhost:4014"
 echo "   - Orthanc DICOM: http://localhost:8042"
-echo "   - HAPI FHIR: http://localhost:3000/hapi-fhir-jpaserver/fhir/"
+echo "   - HAPI FHIR: http://localhost:3000/hapi-fhir-jpaserver"
 echo "   - Orthanc Proxy: http://localhost:5173"
 echo ""
-echo "🔄 Development Features:"
+echo "🔄 Features:"
 echo "   - ✅ Hot reloading enabled"
 echo "   - ✅ Source code mounted for live updates"
 echo "   - ✅ Direct API access (no proxy)"
@@ -72,5 +71,5 @@ else
 fi
 echo ""
 
-# Note: In development mode, the docker-compose command above will run in foreground
+# Note: The docker-compose command above will run in foreground
 # showing all service logs. The script will block here until Ctrl+C is pressed.

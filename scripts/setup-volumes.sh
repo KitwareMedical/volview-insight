@@ -14,13 +14,13 @@ mkdir -p volumes-db/orthanc-data 2>/dev/null || true
 mkdir -p volumes-db/hapi-fhir-data 2>/dev/null || true
 mkdir -p volumes-db/model-cache/{huggingface,monai,medgemma} 2>/dev/null || true
 
-# Set permissions
+# Set permissions (skip if permission denied - likely owned by Docker)
 echo "🔐 Setting permissions..."
-chmod 755 volumes/orthanc-data
-chmod 755 volumes/hapi-fhir-data
-chmod 755 volumes-db/orthanc-data
-chmod 755 volumes-db/hapi-fhir-data
-chmod 755 volumes-db/model-cache
+chmod 755 volumes/orthanc-data 2>/dev/null || echo "   ⚠️  volumes/orthanc-data: Permission denied (owned by Docker, this is OK)"
+chmod 755 volumes/hapi-fhir-data 2>/dev/null || echo "   ⚠️  volumes/hapi-fhir-data: Permission denied (owned by Docker, this is OK)"
+chmod 755 volumes-db/orthanc-data 2>/dev/null || echo "   ⚠️  volumes-db/orthanc-data: Permission denied (owned by Docker, this is OK)"
+chmod 755 volumes-db/hapi-fhir-data 2>/dev/null || echo "   ⚠️  volumes-db/hapi-fhir-data: Permission denied (owned by Docker, this is OK)"
+chmod 755 volumes-db/model-cache 2>/dev/null || echo "   ⚠️  volumes-db/model-cache: Permission denied (owned by Docker, this is OK)"
 
 # Download MONAI lung segmentation model
 echo "🤖 Downloading MONAI lung segmentation model..."
@@ -50,12 +50,12 @@ fi
 # Check if .env exists
 if [ ! -f ".env" ]; then
     echo "⚠️  .env file not found!"
-    if [ -f ".env.example" ]; then
+    if [ -f "env.example" ]; then
         echo "📋 Copying .env.example to .env..."
-        cp .env.example .env
+        cp env.example .env
         echo "✅ Created .env file. Please edit it with your configuration."
     else
-        echo "❌ .env.example not found. Please create .env file manually."
+        echo "❌ env.example not found. Please create .env file manually."
     fi
 fi
 
@@ -63,8 +63,7 @@ echo "✅ Volume setup complete!"
 echo ""
 echo "📋 Next steps:"
 echo "   1. Edit .env file with your configuration"
-echo "   2. Run: ./scripts/start-dev.sh (for development)"
-echo "   3. Or run: docker-compose up -d (for production)"
+echo "   2. Run: ./scripts/start.sh"
 echo ""
 echo "📊 Volume structure created:"
 echo "   📁 volumes/orthanc-data/      - Raw DICOM files (source for import)"
