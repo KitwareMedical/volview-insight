@@ -47,6 +47,12 @@ models** in settings that mirror clinical reality.
 - **Docker** `20.10.0` or later
 - **Docker Compose** v2.0 or later (included with Docker Desktop)
 
+> **Note on Docker Compose command:** This project uses `docker-compose` (with hyphen) in all scripts. Docker Compose V2 is available in two forms:
+> - **Standalone binary**: `docker-compose` (with hyphen) - common in Linux/server environments
+> - **Docker plugin**: `docker compose` (no hyphen) - bundled with Docker Desktop
+> 
+> Both refer to the same modern Docker Compose V2. Our scripts use the standalone form for maximum compatibility across different installation types. If you have Docker Desktop, both commands will work interchangeably.
+
 ---
 
 ### 🐳 **Docker Setup**
@@ -58,10 +64,6 @@ The easiest way to get started is using our Docker orchestration setup:
 git clone https://github.com/KitwareMedical/volview-insight.git
 cd volview-insight
 git submodule update --init
-
-# Apply VolView patches
-cat ./core-volview-patches/VOLVIEW_BACKEND.patch | git -C core/VolView apply
-# macOS only: cat ./core-volview-patches/MACOS_COMPATIBILITY.patch | git -C core/VolView apply
 ```
 
 #### 2) Setup volumes and environment
@@ -71,17 +73,24 @@ cat ./core-volview-patches/VOLVIEW_BACKEND.patch | git -C core/VolView apply
 
 # Create environment file from template
 cp env.example .env
+```
 
-# Edit .env file and add your HF_TOKEN for AI models
-nano .env
+
+**Important for Chat Mode (MedGemma):**
+
+To use the chat mode (conversational AI) in VolView Insight, which relies on the MedGemma model:
+
+1. **Create a Hugging Face account**
+2. **Generate a Hugging Face access token** (read-only permission is sufficient)
+3. **Log in to your Hugging Face account and accept the MedGemma license terms** (you must do this while logged in, or your requests will be rejected)
+4. **Request and receive permission to use MedGemma** if prompted
+
+You must complete all these steps on the Hugging Face website before proceeding here.
+
+```bash
 # Add your Hugging Face token needed for gated public model like medgemma:
 HF_TOKEN=hf_your_token_here
 ```
-
-**Understanding the Volume Structure:**
-- **`volumes/`** - Your source data directory (DICOM/FHIR files to import)  
-- **`volumes-db/`** - Docker persistent storage (actual database files)
-
 **Volume Structure Overview:**
 VolView Insight uses two separate volume directories:
 
@@ -141,7 +150,7 @@ volumes-db/                     # DOCKER VOLUMES (persistent databases)
 **Alternative: Direct API uploads**
 You can also upload data directly through REST APIs:
 - **DICOM**: Use Orthanc's REST API at http://localhost:8042
-- **FHIR**: Use HAPI FHIR's REST API at http://localhost:3000
+- **FHIR**: Use HAPI FHIR's REST API at http://localhost:3000/hapi-fhir-jpaserver/ 
 
 **Data Requirements:**
 - **DICOM files**: Must contain Patient ID in DICOM headers
@@ -221,7 +230,7 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml restart backend v
 - **Frontend**: http://localhost:8080
 - **Backend API**: http://localhost:4014  
 - **Orthanc DICOM**: http://localhost:8042
-- **HAPI FHIR**: http://localhost:3000
+- **HAPI FHIR**: http://localhost:3000/hapi-fhir-jpaserver/ 
 - **Orthanc CORS Proxy**: http://localhost:5173
 
 **Development Features:**
@@ -268,7 +277,7 @@ Once all services are running:
 - Check if data exists in source directories: `ls volumes/orthanc-data/` and `ls volumes/hapi-fhir-data/`
 
 **FHIR connection errors**
-- Ensure HAPI FHIR server is accessible at http://localhost:3000
+- Ensure HAPI FHIR server is accessible at http://localhost:3000/hapi-fhir-jpaserver/ 
 - Check that FHIR data was imported correctly
 - Restart services: `docker-compose restart`
 
