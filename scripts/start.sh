@@ -1,6 +1,16 @@
 #!/bin/bash
 set -e
 
+# Parse command line arguments
+BACKGROUND=false
+FORCE_BUILD=false
+if [[ "$1" == "-d" ]] || [[ "$1" == "--detach" ]]; then
+    BACKGROUND=true
+fi
+if [[ "$1" == "--build" ]] || [[ "$2" == "--build" ]]; then
+    FORCE_BUILD=true
+fi
+
 echo "🚀 Starting VolView Insight..."
 echo "   Frontend: Vite dev server with hot reloading"
 echo "   API calls: Direct to backend services"
@@ -29,47 +39,59 @@ fi
 echo "✅ Pre-flight checks passed!"
 echo ""
 
-# Start services
-echo "🐳 Starting Docker services..."
-docker-compose up --build
+# Check if images exist to determine if this is first run
+IMAGES_EXIST=false
+if docker images | grep -q "volview-insight-docker"; then
+    IMAGES_EXIST=true
+fi
 
-# In development mode, services run in foreground with logs
-# The script will continue running and showing logs
-# Press Ctrl+C to stop all services
+# Determine if we should build
+BUILD_FLAG=""
+if [ "$FORCE_BUILD" = true ]; then
+    BUILD_FLAG="--build"
+    echo "🔨 Building images (--build flag specified)..."
+elif [ "$IMAGES_EXIST" = false ]; then
+    BUILD_FLAG="--build"
+    echo "🔨 Building images (first run detected)..."
+else
+    echo "♻️  Using existing images (fast start)"
+    echo "   To rebuild: ./scripts/start.sh --build"
+fi
 
 echo ""
-echo "🎉 VolView Insight started!"
-echo ""
-echo "🌐 Access points:"
+
+# Show startup information
+echo "🌐 Access points (once services are ready):"
 echo "   - Frontend (Vite dev): http://localhost:8080"
 echo "   - Backend API: http://localhost:4014"
 echo "   - Orthanc DICOM: http://localhost:8042"
-echo "   - HAPI FHIR: http://localhost:3000/hapi-fhir-jpaserver"
+echo "   - HAPI FHIR: http://localhost:3000/hapi-fhir-jpaserver/fhir/"
 echo "   - Orthanc Proxy: http://localhost:5173"
 echo ""
-echo "🔄 Features:"
-echo "   - ✅ Hot reloading enabled"
-echo "   - ✅ Source code mounted for live updates"
-echo "   - ✅ Direct API access (no proxy)"
-echo ""
-echo "📊 Management:"
-echo "   - Stop: Press Ctrl+C"
-echo "   - View specific logs: docker-compose logs -f [service-name]"
-echo "   - Run in background: Add -d flag to docker-compose command"
 
-# Note: Removed service health checks since we're running in foreground
-# Services will show their startup logs directly
-
-# Auto-import data if available
-echo "📥 Checking for data to import..."
+# Auto-import data reminder
 if [ -d "./volumes/orthanc-data" ] && [ -d "./volumes/hapi-fhir-data" ]; then
-    echo "   Data volumes found with existing data"
-    echo "   To import data: ./scripts/auto-import-data.sh"
-else
-    echo "   No data found in volumes directory"
-    echo "   To import data later, run: ./scripts/auto-import-data.sh"
+    echo "� Data import reminder:"
+    echo "   After services start, run: ./scripts/auto-import-data.sh"
+    echo ""
 fi
-echo ""
 
-# Note: The docker-compose command above will run in foreground
-# showing all service logs. The script will block here until Ctrl+C is pressed.
+# Start services
+if [ "$BACKGROUND" = true ]; then
+    echo "🐳 Starting Docker services in background..."
+    echo ""
+    docker-compose up -d $BUILD_FLAG
+    echo ""
+    echo "✅ Services started in background!"
+    echo ""
+    echo "📊 Management commands:"
+    echo "   - View logs: docker-compose logs -f"
+    echo "   - View specific service: docker-compose logs -f [service-name]"
+    echo "   - Stop services: ./scripts/stop.sh"
+    echo "   - Check status: docker-compose ps"
+else
+    echo "🐳 Starting Docker services (foreground mode with live logs)..."
+    echo "   Press Ctrl+C to stop all services"
+    echo ""
+    docker-compose up $BUILD_FLAG
+fi

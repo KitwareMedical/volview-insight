@@ -147,6 +147,8 @@ volumes-db/                     # DOCKER VOLUMES (persistent databases)
    python3 ./scripts/import-fhir-to-hapi.py
    ```
 
+> **Note on dicom_metadata.json**: If you copy example data from another machine, the `dicom_metadata.json` file may contain absolute paths that won't work on your system. Don't worry - the import script will automatically scan the `volumes/orthanc-data/` directory for all `.dcm` files if the metadata file is missing or has invalid paths.
+
 **Alternative: Direct API uploads**
 You can also upload data directly through REST APIs:
 - **DICOM**: Use Orthanc's REST API at http://localhost:8042
@@ -185,12 +187,33 @@ Once you've completed the initial setup and data import, **future container rest
 #### 4) Start the application
 
 ```bash
-# Start all services
+# Start all services (smart build detection)
 ./scripts/start.sh
 
-# To stop all services
+# First run: automatically builds images
+# Subsequent runs: uses existing images (fast)
+
+# Background mode (recommended for development)
+./scripts/start.sh -d           # or --detach
+# Then view logs: docker-compose logs -f
+
+# Force rebuild (after dependency changes)
+./scripts/start.sh --build
+
+# Combined flags
+./scripts/start.sh -d --build   # background + rebuild
+
+# Stop all services
 ./scripts/stop.sh
 ```
+
+**Smart Build Detection:**
+- **First run**: Automatically detects missing images and builds them
+- **Subsequent runs**: Skips build for faster startup (~5 seconds vs ~2 minutes)
+- **Rebuild when needed**: Use `--build` flag after:
+  - Changing `package.json`, `pyproject.toml`, or Dockerfile
+  - Adding new dependencies
+  - Updating base images
 
 **🔄 Service Restarts:**
 ```bash

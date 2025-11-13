@@ -33,20 +33,38 @@ def import_dicom_file(file_path):
     except Exception as e:
         return False, str(e)
 
+def discover_dicom_files(source_path):
+    """Discover all DICOM files in the source directory."""
+    dicom_files = []
+    for root, dirs, files in os.walk(source_path):
+        for file in files:
+            if file.endswith('.dcm'):
+                file_path = Path(root) / file
+                dicom_files.append({'filename': str(file_path.relative_to(source_path))})
+    return dicom_files
+
 def main():
     print("🔄 Importing DICOM files to Orthanc...")
     print(f"📁 Source path: {SOURCE_PATH}")
     print(f"🌐 Orthanc URL: {ORTHANC_URL}")
     
-    # Check if metadata file exists
-    if not METADATA_FILE.exists():
-        print(f"❌ Metadata file not found: {METADATA_FILE}")
-        print("Please run the notebook first to create the DICOM files.")
-        return
+    # Try to load metadata file, or discover files if it doesn't exist
+    if METADATA_FILE.exists():
+        print(f"📋 Loading metadata from: {METADATA_FILE}")
+        try:
+            with open(METADATA_FILE, 'r') as f:
+                dicom_files = json.load(f)
+        except Exception as e:
+            print(f"⚠️  Error reading metadata file: {e}")
+            print("🔍 Falling back to directory scan...")
+            dicom_files = discover_dicom_files(SOURCE_PATH)
+    else:
+        print(f"ℹ️  Metadata file not found, scanning directory for DICOM files...")
+        dicom_files = discover_dicom_files(SOURCE_PATH)
     
-    # Load metadata
-    with open(METADATA_FILE, 'r') as f:
-        dicom_files = json.load(f)
+    if not dicom_files:
+        print("❌ No DICOM files found to import")
+        return
     
     print(f"📊 Found {len(dicom_files)} DICOM files to import")
     
@@ -60,7 +78,25 @@ def main():
         if 'filename' in dicom_info:
             file_path = SOURCE_PATH / dicom_info['filename']
         elif 'dest_path' in dicom_info:
-            file_path = Path(dicom_info['dest_path'])
+            dest_path = Path(dicom_info['dest_path'])
+            # If dest_path is absolute, try to make it relative to SOURCE_PATH
+            if dest_path.is_absolute():
+                # Extract the relative part after 'volumes/orthanc-data'
+                try:
+                    # Find where 'volumes/orthanc-data' or 'orthanc-data' appears in the path
+                    path_parts = dest_path.parts
+                    if 'orthanc-data' in path_parts:
+                        orthanc_idx = path_parts.index('orthanc-data')
+                        relative_parts = path_parts[orthanc_idx + 1:]
+                        file_path = SOURCE_PATH / Path(*relative_parts)
+                    else:
+                        # Fall back to using filename from path
+                        file_path = SOURCE_PATH / dest_path.name
+                except Exception as e:
+                    print(f"⚠️  Could not convert absolute path, using filename: {e}")
+                    file_path = SOURCE_PATH / dest_path.name
+            else:
+                file_path = SOURCE_PATH / dest_path
         else:
             print(f"❌ No filename or dest_path in metadata entry: {dicom_info}")
             failed_imports += 1
