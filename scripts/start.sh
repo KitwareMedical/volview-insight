@@ -40,8 +40,11 @@ echo "✅ Pre-flight checks passed!"
 echo ""
 
 # Check if images exist to determine if this is first run
+# Look for any of the custom-built images (backend, frontend, or proxy)
 IMAGES_EXIST=false
-if docker images | grep -q "volview-insight-docker"; then
+if docker images | grep -q "\-backend.*latest" || \
+   docker images | grep -q "\-volview-insight-web.*latest" || \
+   docker images | grep -q "\-orthanc-proxy.*latest"; then
     IMAGES_EXIST=true
 fi
 
